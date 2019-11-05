@@ -1,1 +1,6 @@
 /.idea
+/release
+/log
+test.py
+chat.log
+ChatBridge_server.log
