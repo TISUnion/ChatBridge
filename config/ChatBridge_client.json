@@ -1,0 +1,7 @@
+{
+	"name": "testClient",
+	"password": "testPassword",
+	"server_hostname": "localhost",
+	"server_port": 30001,
+	"aes_key": "ThisIstheSecret"
+}
