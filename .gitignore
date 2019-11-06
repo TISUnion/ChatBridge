@@ -3,5 +3,6 @@
 /log
 test.py
 chat.log
-ChatBridge_server.log
+*.log
 *.pyc
+/__pycache__

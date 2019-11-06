@@ -7,26 +7,27 @@ import socket
 import threading
 import os
 import time
+import traceback
 
 '''
 数据包格式：
-开始连接：
+开始连接： client -> server
 {
 	"action": "start",
 	"name": "ClientName",
 	"password": "ClientPassword"
 }
-返回结果：
+返回结果： server -> client
 {
 	"action": "result",
 	"data": "success"
 }
-传输信息：
+传输信息： client <-> server
 {
 	"action": "message",
 	"data": "MESSAGE_STRING"
 }
-结束连接：
+结束连接： client <-> server
 {
 	"action": "stop"
 }
@@ -34,8 +35,8 @@ import time
 
 class ChatClientInfo():
 	def __init__(self, name, password):
-		self.name = name
-		self.password = password
+		self.name = toUTF8(name)
+		self.password = toUTF8(password)
 
 	def __eq__(self, other):
 		return self.name == other.name and self.password == other.password
@@ -63,15 +64,11 @@ class ChatClient():
 		return self.AESCryptor.decrypt(self.conn.recv(1024))
 
 	def log(self, msg):
-		msg = str(msg)
-		if type(msg).__name__ == 'unicode':
-			msg = msg.encode('utf-8')
-		prefix = '[ChatBridgeClient.' + self.info.name + '] '
-		msg = prefix.encode('utf-8') + msg
+		msg = stringAdd('[ChatBridgeClient.' + self.info.name + '] ', msg)
 		if self.logFile != None:
 			printLog(msg, self.logFile)
 		if self.consoleOutput:
-			print msg
+			print(msg)
 
 	def isOnline(self):
 		if self.thread != None and self.thread.is_alive() == False:
@@ -85,66 +82,52 @@ class ChatClient():
 
 	def stop(self, notifyConnection):
 		if not self.isOnline():
-			self.log('cannot stop an offline client')
+			self.log('Cannot stop an offline client')
 			return
 		if notifyConnection:
 			self.sendData('{"action": "stop"}')
 		self.conn.close()
-		self.log('client offline')
+		self.log('Client stopped')
 		self.online = False
 
 	def run(self):
-		self.log('client online')
-		self.online = True
-		while self.isOnline():
-			try:
-				data = self.recieveData()
-			except socket.error:
-				self.log('failed to recieve data, stopping client now')
-				self.stop(False)
-			else:
-				if not self.isOnline():
-					break
-				if data:
-					self.processData(data)
-				else:
-					self.log('received empty data, stopping client now')
+		try:
+			self.log('Client starting')
+			self.online = True
+			while self.isOnline():
+				try:
+					data = self.recieveData()
+				except socket.error:
+					self.log('Failed to recieve data, stopping client now')
 					self.stop(False)
-
-	def __splitJson(self, data):
-		ret = []
-		depth = 0
-		j = 0
-		for i in range(len(data)):
-			if data[i] == '{':
-				depth += 1
-			elif data[i] == '}':
-				depth -= 1
-			if depth == 0:
-				ret.append(json.loads(data[j: i + 1]))
-				j = i
-			if depth < 0:
-				raise ValueError
-		if depth != 0:
-			raise ValueError
-		return ret
+				else:
+					if not self.isOnline():
+						break
+					if data:
+						self.processData(data)
+					else:
+						self.log('Received empty data, stopping client now')
+						self.stop(False)
+		except:
+			self.stop()
+			print('Error running client '+ self.info.name)
+			print(traceback.format_exc())
 
 	def processData(self, data):
 		try:
-			js = self.__splitJson(data)
+			js = json.loads(data)
 		except ValueError:
-			self.log('fail to read received json')
-			self.log('recieved: ' + data)
+			self.log('Fail to read received json')
+			self.log(stringAdd('Recieved: ', data))
 			return
-		for i in js:
-			action = i['action']
-			self.log('client revieved action "' + action + '"')
-			if action == 'message':
-				self.recieveMessage(i['data'])
-			elif action == 'result':
-				self.processResult(i['data'])
-			elif action == 'stop':
-				self.stop(False)
+		action = js['action']
+		self.log('Client revieved action "' + action + '"')
+		if action == 'message':
+			self.recieveMessage(js['data'])
+		elif action == 'result':
+			self.processResult(js['data'])
+		elif action == 'stop':
+			self.stop(False)
 
 	def recieveMessage(self, data):
 		pass
@@ -175,12 +158,20 @@ class AESCryptor():
 
 def printLog(msg, logFileName):
 	try:
-		if type(msg).__name__ == 'unicode':
-			msg = msg.encode('utf-8')
+		msg = toUTF8(msg)
 		if not os.path.isfile(logFileName):
 			with open(logFileName, 'w') as f:
 				pass
 		with open(logFileName, 'a') as logfile:
 			logfile.write(time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time())) + ' ' + msg + '\n')
 	except IOError:
-		print 'Fail to access log file "', logFileName, '"'
+		print('Fail to access log file "', logFileName, '"')
+
+def toUTF8(str):
+	return str.encode('utf-8') if type(str).__name__ == 'unicode' else str
+
+def stringAdd(a, b):
+	return toUTF8(a) + toUTF8(b)
+
+def addressToString(addr):
+	return '{0}:{1}'.format(addr[0], addr[1])

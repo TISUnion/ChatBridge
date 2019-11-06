@@ -10,9 +10,9 @@ if os.path.isfile('plugins/ChatBridge_lib.py'): imp.load_source('ChatBridge_lib'
 import ChatBridge_lib
 
 Prefix = '!!ChatBridge'
-ConfigFile = 'config/ChatBridge_client.json'
-LogFile = 'log/ChatBridge_client.log'
-HelpMessage = '''------MCD ChatBridge插件 v20191105------
+ConfigFile = 'ChatBridge_client.json'
+LogFile = 'ChatBridge_client.log'
+HelpMessage = '''------MCD ChatBridge插件 v20191106------
 一个跨服聊天客户端插件
 §a【格式说明】§r
 §7''' + Prefix + '''§r 显示帮助信息
@@ -35,34 +35,35 @@ class ChatClient(ChatBridge_lib.ChatClient, object):
 		self.server_addr = (js['server_hostname'], js['server_port'])
 		self.color = js['color'] if 'color' in js else ''
 		self.log('Client Info: name = ' + self.info.name + ', password = ' + self.info.password)
-		self.log('cryptorPassword = ' + self.cryptorPassword)
-		self.log('server address = ' + str(self.server_addr))
+		self.log('CryptorPassword = ' + self.cryptorPassword)
+		self.log('Server address = ' + ChatBridge_lib.addressToString(self.server_addr))
 
 	def start(self, minecraftServer):
 		self.minecraftServer = minecraftServer
 		if not self.isOnline():
-			self.log('trying to start the client, connecting to ' + str(self.server_addr))
+			self.log('Trying to start the client, connecting to ' + ChatBridge_lib.addressToString(self.server_addr))
 			self.conn = socket.socket()
+			# 发送客户端信息
 			try:
 				self.conn.connect(self.server_addr)
-				self.sendData(
-					'{"action": "start","name":"' + self.info.name + '","password":"' + self.info.password + '"}')
+				self.sendData('{{"action":"start","name":"{0}","password":"{1}"}}'.format(self.info.name, self.info.password))
 			except socket.error:
-				self.log('fail to connect to the server')
+				self.log('Fail to connect to the server')
 				return
+			# 获取登录结果
 			try:
 				result = json.loads(self.recieveData())['data']
 			except socket.error:
-				self.log('fail to receive login result')
+				self.log('Fail to receive login result')
 				return
 			except ValueError:
-				self.log('fail to read login result')
+				self.log('Fail to read login result')
 				return
-			self.log(result)
+			self.log(ChatBridge_lib.stringAdd('Result: ', result))
 			if result == 'login success':
 				super(ChatClient, self).start()
 		else:
-			self.log('client has already been started')
+			self.log('Client has already been started')
 
 	def sendMessage(self, msg):
 		if self.isOnline():
@@ -75,12 +76,11 @@ class ChatClient(ChatBridge_lib.ChatClient, object):
 
 	def recieveMessage(self, msg):
 		global mode
-		if type(msg).__name__ == 'unicode':
-			msg = msg.encode('utf-8')
+		msg = ChatBridge_lib.toUTF8(msg)
 		if mode == Mode.Client:
 			self.log(msg)
 		elif mode == Mode.MCD:
-			msg = self.color.encode('utf-8') + msg + '§r'
+			msg = ChatBridge_lib.stringAdd(self.color, ChatBridge_lib.stringAdd(msg, '§r'))
 			self.minecraftServer.say(msg)
 
 def printMessage(server, info, msg, isTell = True):
@@ -91,7 +91,7 @@ def printMessage(server, info, msg, isTell = True):
 			else:
 				server.say(line)
 		else:
-			print line
+			print(line)
 
 def startClient(server, info):
 	printMessage(server, info, '正在开启ChatBridge客户端')
@@ -161,19 +161,18 @@ def onPlayerLeave(server, playername):
 	client.sendMessage(playername + ' left ' + client.info.name)
 
 
-if len(sys.argv) == 2:
-	ConfigFile = sys.argv[1]
-print '[ChatBridge] Config File = ' + ConfigFile
-if not os.path.isfile(ConfigFile):
-	print '[ChatBridge] Config File not Found, exiting'
-
 if __name__ == '__main__':
 	mode = Mode.Client
 else:
 	mode = Mode.MCD
-print '[ChatBridge] mode =', {Mode.Client: 'Client', Mode.MCD: 'MCD'}[mode]
+	ConfigFile = 'config/' + ConfigFile
+	LogFile = 'log/' + LogFile
+print('[ChatBridge] Mode =', {Mode.Client: 'Client', Mode.MCD: 'MCD'}[mode])
+print('[ChatBridge] Config File = ' + ConfigFile)
+if not os.path.isfile(ConfigFile):
+	print('[ChatBridge] Config File not Found, exiting')
+	exit(1)
 
-time.sleep(1)
 reloadClient()
 if mode == Mode.Client:
 	client.start(None)
