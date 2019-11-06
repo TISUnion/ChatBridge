@@ -16,6 +16,8 @@ Broadcast chat between mc servers or even discord server
 
 ### Server
 
+python**2** is used
+
 1. Grab `ChatBridge_lib.py` and `ChatBridge_server.py` in a folder
 2. Create `ChatBridge_server.json` as the config file
 3. Run `python ChatBridge_server.py`
@@ -42,16 +44,18 @@ Broadcast chat between mc servers or even discord server
 
 ### Client
 
+python**2** is used
+
 1. Grab `ChatBridge_lib.py` and `ChatBridge_client.py` in a folder
 2. Create `ChatBridge_client.json` as the config file
 3. Run `python ChatBridge_client.py`
 
-`ChatBridge_server.json` format
+`ChatBridge_client.json` format
 ```
 {
 	"name": "testClient",
 	"password": "testPassword",
-	"server_hostname": "ChatBridge.server",
+	"server_hostname": "server.ChatBridge.orz",
 	"server_port": 23333,
 	"aes_key": "theAESkey"
 }
@@ -63,13 +67,15 @@ Type `start` to start the client and type `stop` to stop the client
 
 ### Client (as a [MCD](https://github.com/kafuuchino-desu/MCDaemon) plugin)
 
+python**2** is used
+
 1. Grab `ChatBridge_lib.py` and `ChatBridge_client.py` in `plugins/` folder
 2. Create `config/ChatBridge_client.json` as the config file
 3. Create `log/` folder if it doesn't exist
 4. Run MCD
 
 
-`ChatBridge_server.json` is exactly the same as above, but u can custom the displayed text color in it
+`ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
 ```
 {
 	"name": "SurvivalServer",
