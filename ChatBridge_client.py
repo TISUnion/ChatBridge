@@ -2,17 +2,19 @@
 
 import os
 import sys
-import imp
 import time
 import json
 import socket
-if os.path.isfile('plugins/ChatBridge_lib.py'): imp.load_source('ChatBridge_lib','plugins/ChatBridge_lib.py')
-import ChatBridge_lib
+try:
+	from ChatBridgeLibrary import ChatBridge_lib
+except ImportError: # as a MCD plugin
+	sys.path.append("plugins/")
+	from ChatBridgeLibrary import ChatBridge_lib
 
 Prefix = '!!ChatBridge'
 ConfigFile = 'ChatBridge_client.json'
 LogFile = 'ChatBridge_client.log'
-HelpMessage = '''------MCD ChatBridge插件 v20191106------
+HelpMessage = '''------MCD ChatBridge插件 v0.1------
 一个跨服聊天客户端插件
 §a【格式说明】§r
 §7''' + Prefix + '''§r 显示帮助信息
@@ -21,38 +23,41 @@ HelpMessage = '''------MCD ChatBridge插件 v20191106------
 §7''' + Prefix + ''' start§r 开启ChatBridge客户端状态
 §7''' + Prefix + ''' stop§r 关闭ChatBridge客户端状态
 '''
-class Mode():
-	Client = 0
-	MCD = 1
 
-class ChatClient(ChatBridge_lib.ChatClient, object):
+class Mode():
+	Client = 'Client'
+	MCD = 'MCD'
+	Discord = 'Discord'
+
+class ChatClient(ChatBridge_lib.ChatClientBase):
 	minecraftServer = None
-	def __init__(self, configFile):
+	def __init__(self, configFile, LogFile, mode):
 		js = json.load(open(configFile, 'r'))
 		super(ChatClient, self).__init__(ChatBridge_lib.ChatClientInfo(js['name'], js['password']), js['aes_key'], LogFile)
-		global mode
+		self.mode = mode
 		self.consoleOutput = mode != Mode.MCD
 		self.server_addr = (js['server_hostname'], js['server_port'])
-		self.color = js['color'] if 'color' in js else ''
 		self.log('Client Info: name = ' + self.info.name + ', password = ' + self.info.password)
-		self.log('CryptorPassword = ' + self.cryptorPassword)
+		self.log('Mode = ' + mode)
+		self.log('AESKey = ' + self.AESKey)
 		self.log('Server address = ' + ChatBridge_lib.addressToString(self.server_addr))
 
 	def start(self, minecraftServer):
 		self.minecraftServer = minecraftServer
 		if not self.isOnline():
 			self.log('Trying to start the client, connecting to ' + ChatBridge_lib.addressToString(self.server_addr))
-			self.conn = socket.socket()
+			self.sock = socket.socket()
 			# 发送客户端信息
 			try:
-				self.conn.connect(self.server_addr)
+				self.sock.connect(self.server_addr)
 				self.sendData('{{"action":"start","name":"{0}","password":"{1}"}}'.format(self.info.name, self.info.password))
 			except socket.error:
 				self.log('Fail to connect to the server')
 				return
 			# 获取登录结果
 			try:
-				result = json.loads(self.recieveData())['data']
+				data = self.recieveData()
+				result = json.loads(data)['data']
 			except socket.error:
 				self.log('Fail to receive login result')
 				return
@@ -67,20 +72,15 @@ class ChatClient(ChatBridge_lib.ChatClient, object):
 
 	def sendMessage(self, msg):
 		if self.isOnline():
-			self.log('sending "' + msg + '" to server')
-			js = {'action': 'message', 'data': msg}
-			self.sendData(json.dumps(js))
-			return True
-		else:
-			return False
+			self.log('Sending message "' + msg + '" to the server')
+		super(ChatClient, self).sendMessage(msg)
 
 	def recieveMessage(self, msg):
-		global mode
 		msg = ChatBridge_lib.toUTF8(msg)
-		if mode == Mode.Client:
+		if self.mode == Mode.Client:
 			self.log(msg)
-		elif mode == Mode.MCD:
-			msg = ChatBridge_lib.stringAdd(self.color, ChatBridge_lib.stringAdd(msg, '§r'))
+		elif self.mode == Mode.MCD:
+			msg = ChatBridge_lib.stringAdd('§7', ChatBridge_lib.stringAdd(msg, '§r'))
 			self.minecraftServer.say(msg)
 
 def printMessage(server, info, msg, isTell = True):
@@ -93,6 +93,17 @@ def printMessage(server, info, msg, isTell = True):
 		else:
 			print(line)
 
+#  ----------------------
+# | MCDaemon Part Start |
+# ----------------------
+
+def setMinecraftServerAndStart(server):
+	global client
+	if client == None:
+		reloadClient()
+	if not client.isOnline():
+		client.start(server)
+
 def startClient(server, info):
 	printMessage(server, info, '正在开启ChatBridge客户端')
 	setMinecraftServerAndStart(server)
@@ -100,16 +111,14 @@ def startClient(server, info):
 
 def stopClient(server, info):
 	printMessage(server, info, '正在关闭ChatBridge客户端')
+	global client
+	if client == None:
+		reloadClient()
 	client.stop(True)
 	time.sleep(1)
 
-def reloadClient():
-	global ConfigFile, client
-	client = ChatClient(ConfigFile)
-
 def showClientStatus(server, info):
 	printMessage(server, info, 'ChatBridge客户端在线情况: ' + str(client.isOnline()))
-
 
 def onServerInfo(server, info):
 	global client
@@ -117,7 +126,7 @@ def onServerInfo(server, info):
 	if not info.isPlayer and content.endswith('<--[HERE]'):
 		content = content.replace('<--[HERE]', '')
 	command = content.split()
-	if command[0] != Prefix:
+	if len(command) == 0 or command[0] != Prefix:
 		if info.isPlayer:
 			setMinecraftServerAndStart(server)
 			client.sendMessage('<' + info.player + '> ' + info.content)
@@ -144,11 +153,6 @@ def onServerInfo(server, info):
 	else:
 		printMessage(server, info, HelpMessage)
 
-def setMinecraftServerAndStart(server):
-	global client
-	if not client.isOnline():
-		client.start(server)
-
 def onServerStartup(server):
 	setMinecraftServerAndStart(server)
 
@@ -160,24 +164,37 @@ def onPlayerLeave(server, playername):
 	setMinecraftServerAndStart(server)
 	client.sendMessage(playername + ' left ' + client.info.name)
 
+#  --------------------
+# | MCDaemon Part End |
+# --------------------
+
+def reloadClient():
+	global ConfigFile, LogFile, client, mode
+	if mode == None:
+		if __name__ == '__main__':
+			mode = Mode.Client
+		else:
+			mode = Mode.MCD
+			ConfigFile = 'config/' + ConfigFile
+			LogFile = 'log/' + LogFile
+	client = ChatClient(ConfigFile, LogFile, mode)
+
+
+client = None
+mode = None
 
 if __name__ == '__main__':
 	mode = Mode.Client
-else:
-	mode = Mode.MCD
-	ConfigFile = 'config/' + ConfigFile
-	LogFile = 'log/' + LogFile
-print('[ChatBridge] Mode =', {Mode.Client: 'Client', Mode.MCD: 'MCD'}[mode])
-print('[ChatBridge] Config File = ' + ConfigFile)
-if not os.path.isfile(ConfigFile):
-	print('[ChatBridge] Config File not Found, exiting')
-	exit(1)
+	print('[ChatBridge] Config File = ' + ConfigFile)
+	if not os.path.isfile(ConfigFile):
+		print('[ChatBridge] Config File not Found, exiting')
+		exit(1)
 
-reloadClient()
 if mode == Mode.Client:
+	reloadClient()
 	client.start(None)
 	while True:
-		msg = raw_input()
+		msg = raw_input() if sys.version_info.major == 2 else input()
 		if msg == 'stop':
 			client.stop(True)
 		elif msg == 'start':
