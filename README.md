@@ -7,7 +7,7 @@ Broadcast chat between mc servers or even discord server
 
 `ChatBridge_client.py` is the client. it can also be a mcd plugin
 
-[WIP] `ChatBridge_discord.py` will be the client that controls a discord bot
+`ChatBridge_discord.py` will be a type of client that can control a discord bot
 
 ## Useage
 `pip install pycrypto` for python 2
@@ -16,9 +16,7 @@ Broadcast chat between mc servers or even discord server
 
 ### Server
 
-python**2** is used
-
-1. Grab `ChatBridge_lib.py` and `ChatBridge_server.py` in a folder
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder and `ChatBridge_server.py` in a folder
 2. Create `ChatBridge_server.json` as the config file
 3. Run `python ChatBridge_server.py`
 
@@ -37,6 +35,10 @@ python**2** is used
 		{
 			"name": "SurvivalServer",
 			"password": "_OwO_"
+		},
+		{
+			"name": "DiscordBot",
+			"password": "notvanilla"
 		}
 	]
 }
@@ -44,9 +46,7 @@ python**2** is used
 
 ### Client
 
-python**2** is used
-
-1. Grab `ChatBridge_lib.py` and `ChatBridge_client.py` in a folder
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder and `ChatBridge_client.py` in a folder
 2. Create `ChatBridge_client.json` as the config file
 3. Run `python ChatBridge_client.py`
 
@@ -67,23 +67,31 @@ Type `start` to start the client and type `stop` to stop the client
 
 ### Client (as a [MCD](https://github.com/kafuuchino-desu/MCDaemon) plugin)
 
-python**2** is used
-
-1. Grab `ChatBridge_lib.py` and `ChatBridge_client.py` in `plugins/` folder
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder and `ChatBridge_client.py` in `plugins/` folder
 2. Create `config/ChatBridge_client.json` as the config file
 3. Create `log/` folder if it doesn't exist
 4. Run MCD
 
+`ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
+
+
+### Client as a discord bot 
+
+`pip install discord.py` first
+
+**python3 only**
+
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder, `ChatBridge_client.py` and `ChatBridge_discord.py` in `plugins/` folder
+2. Create `ChatBridge_client.json` and `ChatBridge_discord.json` as the config file
+3. Run `python ChatBridge_discord.py`
+
 
 `ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
+
+`ChatBridge_discord.json` format
 ```
 {
-	"name": "SurvivalServer",
-	"password": "_OwO_",
-	"server_hostname": "localhost",
-	"server_port": 23333,
-	"aes_key": "theAESkey",
-	"color": "§7"
+	"bot_token": "your.bot.token.here",
+	"channel_id": 645424523965046400
 }
 ```
-
