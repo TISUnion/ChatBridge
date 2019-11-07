@@ -45,7 +45,7 @@ class DiscordClient(discord.Client):
 			await channel.send(msg)
 
 	async def on_message(self, message):
-		if message.author == self.user:
+		if message.author == self.user or message.channel.id != self.config.channel:
 			return
 		log(f"{message.channel}: {message.author}: {message.author.name}: {message.content}")
 		global chatClient
