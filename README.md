@@ -1,5 +1,5 @@
 # ChatBridge
-Broadcast chat between mc servers or even discord server
+Broadcast chat between Minecraft servers or even discord server
 
 `ChatBridge_lib.py` is the library of ChatBridge.
 
