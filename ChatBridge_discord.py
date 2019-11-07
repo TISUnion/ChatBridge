@@ -4,6 +4,7 @@ import discord
 import os
 import json
 import time
+<<<<<<< HEAD
 import asyncio
 import threading
 import ChatBridge_client
@@ -39,7 +40,10 @@ class DiscordClient(discord.Client):
 		channel = self.get_channel(self.config.channel)
 		while True:
 			if len(self.messages) == 0:
+<<<<<<< HEAD
 				await asyncio.sleep(0.5)
+=======
+>>>>>>> 38450e9e3d4f44c3bd798ed604c9cf9ce68e0459
 				continue
 			msg = self.messages.pop(0)
 			await channel.send(msg)
