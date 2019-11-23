@@ -51,7 +51,6 @@ class ChatServer(ChatBridge_lib.ChatBridgeBase):
 			info = ChatBridge_lib.ChatClientInfo(c['name'], c['password'])
 			self.log('Adding Client: name = {0}, password = {1}'.format(info.name, info.password))
 			self.clients.append(ChatClient(info, self, self.AESKey))
-			self.clients.append(ChatClient(info, self, self.AESKey))
 
 	def boardcastMessage(self, senderInfo, msg):
 		msg = ChatBridge_lib.toUTF8(msg)
@@ -59,7 +58,7 @@ class ChatServer(ChatBridge_lib.ChatBridgeBase):
 		msg = '[' + senderInfo.name + '] ' + msg
 		ChatBridge_lib.printLog(msg, ChatLogFile)
 		for client in self.clients:
-			if not client.info == senderInfo:
+			if client.info != senderInfo:
 				client.sendMessage(msg)
 
 	def run(self):
@@ -90,8 +89,8 @@ class ChatServer(ChatBridge_lib.ChatBridgeBase):
 							break
 					if flag == False:
 						self.sendData('{"action":"result","data":"login fail"}', conn)
-			except ValueError:
-				self.log('Fail to read received initializing json data')
+			except (ValueError, TypeError, KeyError) as err:
+				self.log('Fail to read received initializing json data: ' + str(err))
 			except socket.error:
 				self.log('Fail to respond the client')
 			time.sleep(0.1)

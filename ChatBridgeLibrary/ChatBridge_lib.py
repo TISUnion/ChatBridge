@@ -35,6 +35,7 @@ LibVersion = 'v20191107'
 }
 '''
 
+
 class ChatClientInfo():
 	def __init__(self, name, password):
 		self.name = toUTF8(name)
@@ -61,23 +62,23 @@ class ChatBridgeBase(object):
 		if self.isOnline() and self.sock != None:
 			self.sock.close()
 
-	def sendData(self, msg, sock = None):
+	def sendData(self, msg, sock=None):
 		if sock == None:
 			sock = self.sock
 		msg = self.AESCryptor.encrypt(msg)
 		if sys.version_info.major == 2:
 			sock.sendall(msg)
 		else:
-			sock.sendall(bytes(msg, encoding = 'utf-8'))
+			sock.sendall(bytes(msg, encoding='utf-8'))
 
-	def recieveData(self, sock = None):
+	def recieveData(self, sock=None):
 		if sock == None:
 			sock = self.sock
 		msg = sock.recv(self.ReceiveBufferSize)
 		if sys.version_info.major == 2:
 			msg = msg
 		else:
-			msg = str(msg, encoding = 'utf-8')
+			msg = str(msg, encoding='utf-8')
 		return self.AESCryptor.decrypt(msg)
 
 	def log(self, msg):
@@ -94,12 +95,12 @@ class ChatBridgeBase(object):
 
 
 class ChatClientBase(ChatBridgeBase):
-	def __init__(self, info, AESKey, logFile = None):
+	def __init__(self, info, AESKey, logFile=None):
 		super(ChatClientBase, self).__init__('Client.' + info.name, logFile, AESKey)
 		self.info = info
 
 	def start(self):
-		self.thread = threading.Thread(target = self.run, args = ())
+		self.thread = threading.Thread(target=self.run, args=())
 		self.thread.setDaemon(True)
 		self.thread.start()
 
@@ -166,15 +167,16 @@ class ChatClientBase(ChatBridgeBase):
 		else:
 			return False
 
+
 class AESCryptor():
 	# key and text needs to be utf-8 str in python2 or str in python3
-	def __init__(self, key, mode = AES.MODE_CBC):
+	def __init__(self, key, mode=AES.MODE_CBC):
 		self.key = self.__to16Length(key)
 		self.mode = mode
 
 	def __to16Length(self, text):
 		if sys.version_info.major == 3:
-			text = bytes(text, encoding = 'utf-8')
+			text = bytes(text, encoding='utf-8')
 		return text + (b'\0' * ((16 - (len(text) % 16)) % 16))
 
 	def encrypt(self, text):
@@ -182,23 +184,29 @@ class AESCryptor():
 		text = self.__to16Length(text)
 		result = b2a_hex(cryptor.encrypt(text))
 		if sys.version_info.major == 3:
-			result = str(result, encoding = 'utf-8')
+			result = str(result, encoding='utf-8')
 		return result
 
 	def decrypt(self, text):
 		cryptor = AES.new(self.key, self.mode, self.key)
 		if sys.version_info.major == 3:
-			text = bytes(text, encoding = 'utf-8')
-		result = cryptor.decrypt(a2b_hex(text))
+			text = bytes(text, encoding='utf-8')
+		try:
+			result = cryptor.decrypt(a2b_hex(text))
+		except TypeError as err:
+			print('TypeError when decrypting text')
+			print('text =', text)
+			raise err
 		if sys.version_info.major == 3:
 			try:
-				result = str(result, encoding = 'utf-8')
+				result = str(result, encoding='utf-8')
 			except UnicodeDecodeError:
-				print('err at decrypt string conversion')
+				print('error at decrypt string conversion')
 				print('raw result = ', result)
-				result = str(result, encoding = 'ISO-8859-1')
+				result = str(result, encoding='ISO-8859-1')
 				print('ISO-8859-1 = ', result)
 		return result.rstrip('\0')
+
 
 def printLog(msg, logFileName):
 	try:
@@ -211,14 +219,17 @@ def printLog(msg, logFileName):
 	except IOError:
 		print('Fail to access log file "', logFileName, '"')
 
+
 # for python2 stuffs
 def toUTF8(str):
 	if sys.version_info.major == 3:
 		return str
 	return str.encode('utf-8') if type(str).__name__ == 'unicode' else str
 
+
 def stringAdd(a, b):
 	return toUTF8(a) + toUTF8(b)
+
 
 def addressToString(addr):
 	return '{0}:{1}'.format(addr[0], addr[1])
