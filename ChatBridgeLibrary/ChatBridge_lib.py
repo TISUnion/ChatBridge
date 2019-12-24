@@ -5,41 +5,63 @@ from binascii import b2a_hex, a2b_hex
 import json
 import socket
 import threading
-import os
+import ChatBridgeLibrary.ChatBridge_utils as utils
 import time
 import sys
+import struct
 import traceback
 
-LibVersion = 'v20191107'
+LibVersion = 'v20191224'
 '''
 数据包格式：
-开始连接： client -> server
-{
-	"action": "start",
-	"name": "ClientName",
-	"password": "ClientPassword"
-}
+4 byte长的unsigned int代表长度，随后是所指长度的加密字符串，解密后为一个json
+json格式：
 返回结果： server -> client
 {
 	"action": "result",
-	"data": "success"
+	"result": "RESULT"
 }
+开始连接： client -> server
+{
+	"action": "login",
+	"name": "ClientName",
+	"password": "ClientPassword"
+}
+返回登录情况：server -> client 返回结果
+	"result": login success" // 成功
+	"result": login fail" // 失败
+		
 传输信息： client <-> server
 {
 	"action": "message",
-	"data": "MESSAGE_STRING"
+	"client": "CLIENT_NAME",
+	"player": "PLAYER_NAME",
+	"message": "MESSAGE_STRING"
 }
 结束连接： client <-> server
 {
 	"action": "stop"
 }
+
+调用指令：
+A -> server -> B
+clientA -> server
+{
+	"action": "command",
+	"sender": "CLIENT_A_NAME",
+	"receiver": "CLIENT_B_NAME",
+	"command": "COMMAND",
+	"result": "RESULT"
+}
 '''
+
+CommandNoneResult = '_@#NoneResult#@_'
 
 
 class ChatClientInfo():
 	def __init__(self, name, password):
-		self.name = toUTF8(name)
-		self.password = toUTF8(password)
+		self.name = utils.toUTF8(name)
+		self.password = utils.toUTF8(password)
 
 	def __eq__(self, other):
 		return self.name == other.name and self.password == other.password
@@ -66,25 +88,37 @@ class ChatBridgeBase(object):
 		if sock == None:
 			sock = self.sock
 		msg = self.AESCryptor.encrypt(msg)
-		if sys.version_info.major == 2:
-			sock.sendall(msg)
-		else:
-			sock.sendall(bytes(msg, encoding='utf-8'))
+		if sys.version_info.major == 3:
+			msg = bytes(msg, encoding='utf-8')
+		sock.sendall(struct.pack('I', len(msg)))
+		sock.sendall(msg)
 
 	def recieveData(self, sock=None):
 		if sock == None:
 			sock = self.sock
-		msg = sock.recv(self.ReceiveBufferSize)
-		if sys.version_info.major == 2:
-			msg = msg
-		else:
-			msg = str(msg, encoding='utf-8')
+		sock.settimeout(None)
+		header = sock.recv(4)
+		if len(header) < 4:
+			return ''
+		length = struct.unpack('I', header)[0]
+		msg = ''
+		sock.settimeout(5)
+		while length > 0:
+			buf = sock.recv(self.ReceiveBufferSize)
+			if sys.version_info.major == 3:
+				buf = str(buf, encoding='utf-8')
+			msg += buf
+			length -= len(buf)
 		return self.AESCryptor.decrypt(msg)
 
-	def log(self, msg):
-		msg = stringAdd('[' + self.logName + '] ', msg)
-		if self.logFile != None:
-			printLog(msg, self.logFile)
+	def log(self, msg, fileName = None):
+		if fileName == None:
+			fileName = self.logFile
+		msg = utils.stringAdd('[' + self.logName + '] ', msg)
+		t = time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time())) + ' '
+		msg = utils.stringAdd(t, msg)
+		if fileName != None:
+			utils.printLog(msg, fileName)
 		if self.consoleOutput:
 			print(msg)
 
@@ -92,6 +126,46 @@ class ChatBridgeBase(object):
 		if self.thread != None and self.thread.is_alive() == False:
 			self.online = False
 		return self.online
+
+	def send_result(self, result, sock=None):
+		js = {
+			'action': 'result',
+			'result': result
+		}
+		self.sendData(json.dumps(js), sock)
+
+	def send_login(self, name, password, sock=None):
+		js = {
+			'action': 'login',
+			'name': name,
+			'password': password
+		}
+		self.sendData(json.dumps(js), sock)
+
+	def send_message(self, client, player, message, sock=None):
+		js = {
+			'action': 'message',
+			'client': client,
+			'player': player,
+			'message': message
+		}
+		self.sendData(json.dumps(js), sock)
+
+	def send_command(self, sender, receiver, command, result, sock=None):
+		js = {
+			'action': 'command',
+			'sender': sender,
+			'receiver': receiver,
+			'command': command,
+			'result': result
+		}
+		self.sendData(json.dumps(js), sock)
+
+	def send_stop(self, sock=None):
+		js = {
+			'action': 'stop'
+		}
+		self.sendData(json.dumps(js), sock)
 
 
 class ChatClientBase(ChatBridgeBase):
@@ -109,10 +183,18 @@ class ChatClientBase(ChatBridgeBase):
 			self.log('Cannot stop an offline client')
 			return
 		if notifyConnection:
-			self.sendData('{"action": "stop"}')
+			self.send_stop()
 		self.sock.close()
 		self.log('Client stopped')
 		self.online = False
+
+	def sendData(self, msg, sock=None):
+		try:
+			super(ChatClientBase, self).sendData(msg, sock)
+		except socket.error:
+			self.log('Fail to send data to server')
+			if self.isOnline():
+				self.stop(False)
 
 	def run(self):
 		try:
@@ -133,39 +215,56 @@ class ChatClientBase(ChatBridgeBase):
 						self.log('Received empty data, stopping client now')
 						self.stop(False)
 		except:
-			self.stop(True)
 			print('Error running client ' + self.info.name)
 			print(traceback.format_exc())
+			self.stop(True)
 
 	def processData(self, data):
 		try:
 			js = json.loads(data)
 		except ValueError:
 			self.log('Fail to read received json')
-			self.log(stringAdd('Received: ', data))
+			self.log(utils.stringAdd('Received: ', data))
 			return
 		action = js['action']
 		self.log('Client received action "' + action + '"')
-		if action == 'message':
-			self.recieveMessage(js['data'])
-		elif action == 'result':
-			self.recieveResult(js['data'])
+		if action == 'result':
+			self.on_recieve_result(js)
+		elif action == 'login':
+			self.on_recieve_login(js)
+		elif action == 'message':
+			self.on_recieve_message(js)
+		elif action == 'command':
+			self.on_recieve_command(js)
 		elif action == 'stop':
-			self.stop(False)
+			self.on_recieve_stop(js)
 
-	def recieveMessage(self, data):
-		pass
-
-	def recieveResult(self, data):
-		pass
-
-	def sendMessage(self, msg):
+	def send_message(self, client, player, message, sock=None):
 		if self.isOnline():
-			js = {'action': 'message', 'data': msg}
-			self.sendData(json.dumps(js))
-			return True
+			super(ChatClientBase, self).send_message(client, player, message, sock)
 		else:
-			return False
+			self.log('Cannot send message since client is offline')
+
+	def send_command(self, receiver, command, result=CommandNoneResult, sock=None):
+		if self.isOnline():
+			super(ChatClientBase, self).send_command(self.info.name, receiver, command, result, sock)
+		else:
+			self.log('Cannot send command since client is offline')
+
+	def on_recieve_result(self, data):
+		pass
+
+	def on_recieve_login(self, data):
+		pass
+
+	def on_recieve_message(self, data):
+		pass
+
+	def on_recieve_command(self, data):
+		pass
+
+	def on_recieve_stop(self, data):
+		self.stop(False)
 
 
 class AESCryptor():
@@ -197,6 +296,10 @@ class AESCryptor():
 			print('TypeError when decrypting text')
 			print('text =', text)
 			raise err
+		except ValueError as err:
+			print(err.args)
+			print('len(text) =', len(text))
+			raise err
 		if sys.version_info.major == 3:
 			try:
 				result = str(result, encoding='utf-8')
@@ -206,30 +309,3 @@ class AESCryptor():
 				result = str(result, encoding='ISO-8859-1')
 				print('ISO-8859-1 = ', result)
 		return result.rstrip('\0')
-
-
-def printLog(msg, logFileName):
-	try:
-		msg = toUTF8(msg)
-		if not os.path.isfile(logFileName):
-			with open(logFileName, 'w') as f:
-				pass
-		with open(logFileName, 'a') as logfile:
-			logfile.write(time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time())) + ' ' + msg + '\n')
-	except IOError:
-		print('Fail to access log file "', logFileName, '"')
-
-
-# for python2 stuffs
-def toUTF8(str):
-	if sys.version_info.major == 3:
-		return str
-	return str.encode('utf-8') if type(str).__name__ == 'unicode' else str
-
-
-def stringAdd(a, b):
-	return toUTF8(a) + toUTF8(b)
-
-
-def addressToString(addr):
-	return '{0}:{1}'.format(addr[0], addr[1])

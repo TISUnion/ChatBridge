@@ -6,10 +6,16 @@ import time
 import json
 import socket
 try:
-	from ChatBridgeLibrary import ChatBridge_lib
+	from ChatBridgeLibrary import ChatBridge_lib as lib
+	from ChatBridgeLibrary import ChatBridge_utils as utils
 except ImportError: # as a MCD plugin
 	sys.path.append("plugins/")
-	from ChatBridgeLibrary import ChatBridge_lib
+	from ChatBridgeLibrary import ChatBridge_lib as lib
+	from ChatBridgeLibrary import ChatBridge_utils as utils
+
+stats = None
+if os.path.isfile('plugins/StatsHelper.py'):
+	import StatsHelper as stats
 
 Prefix = '!!ChatBridge'
 ConfigFile = 'ChatBridge_client.json'
@@ -29,61 +35,76 @@ class Mode():
 	MCD = 'MCD'
 	Discord = 'Discord'
 
-class ChatClient(ChatBridge_lib.ChatClientBase):
+class ChatClient(lib.ChatClientBase):
 	minecraftServer = None
 	def __init__(self, configFile, LogFile, mode):
 		js = json.load(open(configFile, 'r'))
-		super(ChatClient, self).__init__(ChatBridge_lib.ChatClientInfo(js['name'], js['password']), js['aes_key'], LogFile)
+		super(ChatClient, self).__init__(lib.ChatClientInfo(js['name'], js['password']), js['aes_key'], LogFile)
 		self.mode = mode
 		self.consoleOutput = mode != Mode.MCD
 		self.server_addr = (js['server_hostname'], js['server_port'])
 		self.log('Client Info: name = ' + self.info.name + ', password = ' + self.info.password)
 		self.log('Mode = ' + mode)
 		self.log('AESKey = ' + self.AESKey)
-		self.log('Server address = ' + ChatBridge_lib.addressToString(self.server_addr))
+		self.log('Server address = ' + utils.addressToString(self.server_addr))
 
 	def start(self, minecraftServer):
 		self.minecraftServer = minecraftServer
 		if not self.isOnline():
-			self.log('Trying to start the client, connecting to ' + ChatBridge_lib.addressToString(self.server_addr))
+			self.log('Trying to start the client, connecting to ' + utils.addressToString(self.server_addr))
 			self.sock = socket.socket()
 			# 发送客户端信息
 			try:
 				self.sock.connect(self.server_addr)
-				self.sendData('{{"action":"start","name":"{0}","password":"{1}"}}'.format(self.info.name, self.info.password))
+				self.send_login(self.info.name, self.info.password)
 			except socket.error:
 				self.log('Fail to connect to the server')
 				return
 			# 获取登录结果
 			try:
 				data = self.recieveData()
-				result = json.loads(data)['data']
+				result = json.loads(data)['result']
 			except socket.error:
 				self.log('Fail to receive login result')
 				return
 			except ValueError:
 				self.log('Fail to read login result')
 				return
-			self.log(ChatBridge_lib.stringAdd('Result: ', result))
+			self.log(utils.stringAdd('Result: ', result))
 			if result == 'login success':
 				super(ChatClient, self).start()
 		else:
 			self.log('Client has already been started')
 
-	def sendMessage(self, msg):
-		if self.isOnline():
-			self.log('Sending message "' + msg + '" to the server')
-		super(ChatClient, self).sendMessage(msg)
-
-	def recieveMessage(self, msg):
-		msg = ChatBridge_lib.toUTF8(msg)
-		if self.mode == Mode.Client:
+	def on_recieve_message(self, data):
+		messages = utils.messageData_to_strings(data)
+		for msg in messages:
 			self.log(msg)
-		elif self.mode == Mode.MCD:
-			msg = ChatBridge_lib.stringAdd('§7', ChatBridge_lib.stringAdd(msg, '§r'))
-			self.minecraftServer.say(msg)
+			if self.mode == Mode.MCD:
+				msg = utils.stringAdd('§7', utils.stringAdd(msg, '§r'))
+				self.minecraftServer.say(msg)
 
-def printMessage(server, info, msg, isTell = True):
+	def on_recieve_command(self, data):
+		command = data['command']
+		result = ''
+		if command.startswith('!!stats'):
+			result = stats.onServerInfo(None, None, command) if stats != None else 'StatsHelper not found'
+		data['result'] = result
+		self.sendData(json.dumps(data))
+
+	def sendChatMessage(self, player, message):
+		self.log('Sending chat message "' + str((player, message)) + '" to the server')
+		self.send_message(self.info.name, player, message)
+
+	def sendMessage(self, message):
+		self.log('Sending message "' + message + '" to the server')
+		self.send_message(self.info.name, '', message)
+
+#  ----------------------
+# | MCDaemon Part Start |
+# ----------------------
+
+def printLines(server, info, msg, isTell = True):
 	for line in msg.splitlines():
 		if info.isPlayer:
 			if isTell:
@@ -93,10 +114,6 @@ def printMessage(server, info, msg, isTell = True):
 		else:
 			print(line)
 
-#  ----------------------
-# | MCDaemon Part Start |
-# ----------------------
-
 def setMinecraftServerAndStart(server):
 	global client
 	if client == None:
@@ -105,12 +122,12 @@ def setMinecraftServerAndStart(server):
 		client.start(server)
 
 def startClient(server, info):
-	printMessage(server, info, '正在开启ChatBridge客户端')
+	printLines(server, info, '正在开启ChatBridge客户端')
 	setMinecraftServerAndStart(server)
 	time.sleep(1)
 
 def stopClient(server, info):
-	printMessage(server, info, '正在关闭ChatBridge客户端')
+	printLines(server, info, '正在关闭ChatBridge客户端')
 	global client
 	if client == None:
 		reloadClient()
@@ -118,7 +135,7 @@ def stopClient(server, info):
 	time.sleep(1)
 
 def showClientStatus(server, info):
-	printMessage(server, info, 'ChatBridge客户端在线情况: ' + str(client.isOnline()))
+	printLines(server, info, 'ChatBridge客户端在线情况: ' + str(client.isOnline()))
 
 def onServerInfo(server, info):
 	global client
@@ -129,13 +146,14 @@ def onServerInfo(server, info):
 	if len(command) == 0 or command[0] != Prefix:
 		if info.isPlayer:
 			setMinecraftServerAndStart(server)
-			client.sendMessage('<' + info.player + '> ' + info.content)
+			client.log('Sending message "' + str((info.player, info.content)) + '" to the server')
+			client.sendChatMessage(info.player, info.content)
 		return
 	del command[0]
 
 	cmdLen = len(command)
 	if cmdLen == 0:
-		printMessage(server, info, HelpMessage)
+		printLines(server, info, HelpMessage)
 		return
 
 	if cmdLen == 1 and command[0] == 'status':
@@ -151,17 +169,19 @@ def onServerInfo(server, info):
 		stopClient(server, info)
 		showClientStatus(server, info)
 	else:
-		printMessage(server, info, HelpMessage)
+		printLines(server, info, HelpMessage)
 
 def onServerStartup(server):
 	setMinecraftServerAndStart(server)
 
 def onPlayerJoin(server, playername):
 	setMinecraftServerAndStart(server)
+	global client
 	client.sendMessage(playername + ' joined ' + client.info.name)
 
 def onPlayerLeave(server, playername):
 	setMinecraftServerAndStart(server)
+	global client
 	client.sendMessage(playername + ' left ' + client.info.name)
 
 #  --------------------

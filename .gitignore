@@ -6,3 +6,4 @@ chat.log
 *.log
 *.pyc
 /__pycache__
+StatsHelper.py
