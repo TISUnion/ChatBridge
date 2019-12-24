@@ -7,21 +7,24 @@ import time
 import asyncio
 import threading
 import ChatBridge_client
+import traceback
 from ChatBridgeLibrary.ChatBridge_lib import printLog
+from googletrans import Translator
 
 DiscordConfigFile = 'ChatBridge_discord.json'
 ClientConfigFile = 'ChatBridge_client.json'
 LogFile = 'ChatBridge_discord.log'
 RetryTime = 3 # second
+translator = Translator()
 
 class DiscordConfig():
 	def __init__(self, configFile):
 		js = json.load(open(configFile, 'r'))
 		self.token = js['bot_token']
 		self.channel = js['channel_id']
+		self.commandPrefix = js['command_prefix']
 		log('[Discord] Bot Token = ' + self.token)
 		log('[Discord] Channel ID = ' + str(self.channel))
-
 
 class DiscordClient(discord.Client):
 	messages = []
@@ -37,21 +40,39 @@ class DiscordClient(discord.Client):
 		log(f'Logged in as {self.user}')
 
 		channel = self.get_channel(self.config.channel)
-		while True:
-			if len(self.messages) == 0:
-				await asyncio.sleep(0.3)
-				continue
-			msg = self.messages.pop(0)
-			await channel.send(self.formatMessageToDiscord(msg))
+		try:
+			while True:
+				if len(self.messages) == 0:
+					await asyncio.sleep(0.1)
+					continue
+				msg = self.messages.pop(0)
+				await channel.send(self.formatMessageToDiscord(msg))
+				translation = translator.translate(msg, dest='en')
+				if translation.src == 'en':
+					continue
+				await channel.send(self.formatMessageToDiscord(translation.text + ' [en]'))
+		except:
+			s = traceback.format_exc()
+			print(s)
+			log(s)
+			await self.close()
 
 	async def on_message(self, message):
 		if message.author == self.user or message.channel.id != self.config.channel:
+			return
+		if message.content.startswith(self.config.commandPrefix):
+			await self.processCommand(message)
 			return
 		log(f"{message.channel}: {message.author}: {message.author.name}: {message.content}")
 		global chatClient
 		for line in message.content.splitlines():
 			chatClient.sendMessage(self.formatMessageToMinecraft(message.author.name, line))
 			await asyncio.sleep(0.1)
+
+	async def processCommand(self, message):
+		cmd = message.content.splitlines()[0][len(self.config.commandPrefix):]
+		if (cmd == 'ping'):
+			await message.channel.send('pong')
 
 	def addMessage(self, msg):
 		log('Adding message "' + msg + '" to Discord Bot')
@@ -77,7 +98,7 @@ class ChatClient(ChatBridge_client.ChatClient):
 	def recieveMessage(self, msg):
 		global discordBot
 		discordBot.addMessage(msg)
-		lastMessageReceivedTime = time.time()
+		self.lastMessageReceivedTime = time.time()
 
 	def start(self):
 		self.lastMessageReceivedTime = time.time()
