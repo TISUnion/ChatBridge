@@ -10,8 +10,9 @@ import time
 import sys
 import struct
 import traceback
+import random
 
-LibVersion = 'v20191224'
+LibVersion = 'v20200116'
 '''
 数据包格式：
 4 byte长的unsigned int代表长度，随后是所指长度的加密字符串，解密后为一个json
@@ -44,18 +45,54 @@ json格式：
 }
 
 调用指令：
-A -> server -> B
-clientA -> server
+clientA -> server -> clientB
 {
 	"action": "command",
 	"sender": "CLIENT_A_NAME",
 	"receiver": "CLIENT_B_NAME",
 	"command": "COMMAND",
-	"result": "RESULT"
+	"result": 
+	{
+		"responded": false
+	}
 }
+clientA <- server <- clientB
+{
+	"action": "command",
+	"sender": "CLIENT_A_NAME",
+	"receiver": "CLIENT_B_NAME",
+	"command": "COMMAND",
+	"result": 
+	{
+		"responded": true,
+		...
+	}
+}
+	[!!stats]
+	"result": 
+	{
+		"responded": xxx,
+		"type": int,  // 0: good, 1: stats not found, 2: stats helper not found
+		"stats_name": "aaa.bbb", // if good
+		"result": "STRING" // if good
+	}
+
+保持链接
+sender -> receiver
+{
+	"action": "keepAlive",
+	"type": "ping"
+}
+receiver -> sender
+{
+	"action": "keepAlive",
+	"type": "pong"
+}
+等待KeepAliveTimeWait秒无响应即可中断连接
 '''
 
-CommandNoneResult = '_@#NoneResult#@_'
+KeepAliveTimeWait = 30
+keepAliveInterval = 60
 
 
 class ChatClientInfo():
@@ -69,7 +106,6 @@ class ChatClientInfo():
 
 class ChatBridgeBase(object):
 	sock = None
-	thread = None
 	online = False
 	consoleOutput = True
 	ReceiveBufferSize = 1024
@@ -93,10 +129,10 @@ class ChatBridgeBase(object):
 		sock.sendall(struct.pack('I', len(msg)))
 		sock.sendall(msg)
 
-	def recieveData(self, sock=None):
+	def recieveData(self, sock=None, timeout=None):
 		if sock == None:
 			sock = self.sock
-		sock.settimeout(None)
+		sock.settimeout(timeout)
 		header = sock.recv(4)
 		if len(header) < 4:
 			return ''
@@ -104,7 +140,7 @@ class ChatBridgeBase(object):
 		msg = ''
 		sock.settimeout(5)
 		while length > 0:
-			buf = sock.recv(self.ReceiveBufferSize)
+			buf = sock.recv(min(length, self.ReceiveBufferSize))
 			if sys.version_info.major == 3:
 				buf = str(buf, encoding='utf-8')
 			msg += buf
@@ -123,8 +159,6 @@ class ChatBridgeBase(object):
 			print(msg)
 
 	def isOnline(self):
-		if self.thread != None and self.thread.is_alive() == False:
-			self.online = False
 		return self.online
 
 	def send_result(self, result, sock=None):
@@ -167,45 +201,132 @@ class ChatBridgeBase(object):
 		}
 		self.sendData(json.dumps(js), sock)
 
+	def send_keepAlive(self, type, sock=None):
+		js = {
+			'action': 'keepAlive',
+			'type': type
+		}
+		self.sendData(json.dumps(js), sock)
+
+	def on_recieve_result(self, data):
+		pass
+
+	def on_recieve_login(self, data):
+		pass
+
+	def on_recieve_message(self, data):
+		pass
+
+	def on_recieve_command(self, data):
+		pass
+
+	def on_recieve_stop(self, data):
+		pass
+
+	def on_recieve_keepAlive(self, data):
+		pass
+
 
 class ChatClientBase(ChatBridgeBase):
+	threadRun = None
+	threadKeepAlive = None
 	def __init__(self, info, AESKey, logFile=None):
 		super(ChatClientBase, self).__init__('Client.' + info.name, logFile, AESKey)
 		self.info = info
+		self.isStopping = False  # 当调用stop时设为True
+		self.keepAliveResponded = False  # 是否得到keepAlive的pong回应
+
+	def isOnline(self):
+		if self.threadRun != None and self.threadRun.is_alive() == False:
+			self.online = False
+		return super(ChatClientBase, self).isOnline()
 
 	def start(self):
-		self.thread = threading.Thread(target=self.run, args=())
-		self.thread.setDaemon(True)
-		self.thread.start()
+		self.threadRun = threading.Thread(target=self.run, args=())
+		self.threadRun.setDaemon(True)
+		self.threadRun.start()
 
-	def stop(self, notifyConnection):
+	def stop(self, notifyConnection=True):
+		if self.isStopping:
+			return
+		self.isStopping = True
 		if not self.isOnline():
 			self.log('Cannot stop an offline client')
 			return
-		if notifyConnection:
-			self.send_stop()
-		self.sock.close()
+		try:
+			if notifyConnection:
+				self.send_stop()
+		except Exception as err:
+			self.log('Fail to send stop message, error = {}'.format(err.args))
+		try:
+			self.sock.close()
+		except Exception as err:
+			self.log('Fail to close socket, error = {}'.format(err.args))
 		self.log('Client stopped')
 		self.online = False
 
 	def sendData(self, msg, sock=None):
 		try:
 			super(ChatClientBase, self).sendData(msg, sock)
-		except socket.error:
-			self.log('Fail to send data to server')
+		except socket.error as err:
+			self.log('Fail to send data "{}" to server / client, error = {}'.format(utils.lengthLimit(msg), err.args))
 			if self.isOnline():
 				self.stop(False)
+
+	def keepAlive(self):
+		global KeepAliveTimeWait
+		keepAliveTimer = time.time() - random.randint(0, int(KeepAliveTimeWait / 2))
+		while self.isOnline():
+			if time.time() - keepAliveTimer >= keepAliveInterval:
+				try:
+					self.keepAliveResponded = False
+					self.log('Keep alive pinging...')
+					self.send_keepAlive('ping')
+				except socket.error as err:
+					self.log('Failed to send keep alive data, error = {}, stopping client now'.format(err.args))
+					self.stop()
+				else:
+					keepAliveSentTime = time.time()
+					while self.isOnline() and self.keepAliveResponded == False and time.time() - keepAliveSentTime <= KeepAliveTimeWait:
+						utils.sleep()
+					if not self.isOnline():
+						break
+					if self.keepAliveResponded:
+						self.log('Keep alive responded, ping = {}ms'.format(round((time.time() - keepAliveSentTime) * 1000, 1)))
+					else:
+						self.log('No respond for keep alive, stop the client')
+						self.stop()
+					keepAliveTimer = time.time()
+			utils.sleep()
+
+	def on_recieve_keepAlive(self, data):
+		if data['type'] == 'ping':
+			self.send_keepAlive('pong')
+		elif data['type'] == 'pong':
+			self.keepAliveResponded = True
 
 	def run(self):
 		try:
 			self.log('Client starting')
 			self.online = True
+			self.isStopping = False
+			self.threadKeepAlive = threading.Thread(target=self.keepAlive, args=())
+			self.threadKeepAlive.setDaemon(True)
+			self.threadKeepAlive.start()
 			while self.isOnline():
 				try:
+					self.log('[Thread run] waiting for data recieved')
 					data = self.recieveData()
-				except socket.error:
-					self.log('Failed to receive data, stopping client now')
-					self.stop(False)
+					if not self.isOnline():
+						break
+				except socket.timeout:
+					self.log('Timeout, ignore')
+				except socket.error as err:
+					if self.isStopping:
+						pass
+					else:
+						self.log('Failed to receive data, error = {}, stopping client now'.format(err.args))
+						self.stop(True)
 				else:
 					if not self.isOnline():
 						break
@@ -213,11 +334,12 @@ class ChatClientBase(ChatBridgeBase):
 						self.processData(data)
 					else:
 						self.log('Received empty data, stopping client now')
-						self.stop(False)
+						self.stop(True)
 		except:
 			print('Error running client ' + self.info.name)
 			print(traceback.format_exc())
 			self.stop(True)
+		self.threadRun = None
 
 	def processData(self, data):
 		try:
@@ -238,6 +360,8 @@ class ChatClientBase(ChatBridgeBase):
 			self.on_recieve_command(js)
 		elif action == 'stop':
 			self.on_recieve_stop(js)
+		elif action == 'keepAlive':
+			self.on_recieve_keepAlive(js)
 
 	def send_message(self, client, player, message, sock=None):
 		if self.isOnline():
@@ -245,23 +369,23 @@ class ChatClientBase(ChatBridgeBase):
 		else:
 			self.log('Cannot send message since client is offline')
 
-	def send_command(self, receiver, command, result=CommandNoneResult, sock=None):
+	def send_command_query(self, receiver, command, sock=None):
+		js = {
+			'action': 'command',
+			'sender': self.info.name,
+			'receiver': receiver,
+			'command': command,
+			'result': {
+				'responded': False
+			}
+		}
+		self.sendData(json.dumps(js), sock)
+
+	def send_command(self, sender, receiver, command, result, sock=None):
 		if self.isOnline():
-			super(ChatClientBase, self).send_command(self.info.name, receiver, command, result, sock)
+			super(ChatClientBase, self).send_command(sender, receiver, command, result, sock)
 		else:
 			self.log('Cannot send command since client is offline')
-
-	def on_recieve_result(self, data):
-		pass
-
-	def on_recieve_login(self, data):
-		pass
-
-	def on_recieve_message(self, data):
-		pass
-
-	def on_recieve_command(self, data):
-		pass
 
 	def on_recieve_stop(self, data):
 		self.stop(False)

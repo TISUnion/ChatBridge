@@ -25,11 +25,11 @@ class DiscordConfig():
 		self.token = js['bot_token']
 		self.channel = js['channel_id']
 		self.commandPrefix = js['command_prefix']
-		self.clientToQuery = js['client_to_query']
+		self.clientToQueryStats = js['client_to_query_stats']
 		DiscordBot.log('Bot Token = ' + self.token)
 		DiscordBot.log('Channel ID = ' + str(self.channel))
 		DiscordBot.log('Command Prefix = ' + self.commandPrefix)
-		DiscordBot.log('Client to Query = ' + self.clientToQuery)
+		DiscordBot.log('Client to Query Stats = ' + self.clientToQueryStats)
 
 class DiscordBot(commands.Bot):
 	messages = []
@@ -49,15 +49,20 @@ class DiscordBot(commands.Bot):
 					await asyncio.sleep(0.05)
 					continue
 				messageData = self.messages.pop(0)
-				if type(messageData).__name__ == 'dict': # chat message
+				if type(messageData) == dict: # chat message
 					self.log('Processing chat message ' + utils.messageData_to_string(messageData))
 					for message in utils.messageData_to_strings(messageData):
 						translation = translator.translate(messageData['message'], dest='en')
-						if translation.src != 'en':
-							message += '   | [en] ' + translation.text
+						dest = 'en'
+						if translation.src != dest:
+							message += '   | [{} -> {}] {}'.format(translation.src, dest, translation.text)
 						await channel.send(self.formatMessageToDiscord(message))
-				elif type(messageData).__name__ == 'Embed': # embed
+				elif type(messageData) == discord.Embed: # embed
 					await channel.send(embed=messageData)
+				elif type(messageData) == str:
+					await channel.send(self.formatMessageToDiscord(messageData))
+				else:
+					self.log('Unkown messageData type {}'.format(type(messageData)))
 		except:
 			s = traceback.format_exc()
 			print(s)
@@ -78,9 +83,12 @@ class DiscordBot(commands.Bot):
 		global chatClient
 		chatClient.sendChatMessage(message.author.name, message.content)
 
-	def addMessage(self, messageData):
+	def addChatMessage(self, messageData):
 		self.log('Adding message "' + utils.messageData_to_string(messageData) + '" to Discord Bot')
 		self.messages.append(messageData)
+
+	def addMessage(self, message):
+		self.messages.append(message)
 
 	def addResult(self, title, message):
 		message.replace('    ', ' ')
@@ -115,8 +123,11 @@ class DiscordBot(commands.Bot):
 		print(msg)
 		utils.printLog(msg, LogFile)
 
+def createDiscordBot():
+	global discordBot
+	discordBot = DiscordBot(DiscordConfigFile)
 
-discordBot = DiscordBot(DiscordConfigFile)
+createDiscordBot()
 
 @discordBot.command()
 async def ping(ctx):
@@ -141,37 +152,33 @@ async def stats(ctx, *args):
 		return
 	global chatClient
 	if chatClient.isOnline:
-		client = discordBot.config.clientToQuery
+		client = discordBot.config.clientToQueryStats
 		discordBot.log('Sending command "{}" to client {}'.format(command, client))
-		chatClient.send_command(client, command)
+		chatClient.send_command_query(client, command)
 	else:
 		await ctx.send('ChatBridge client is offline')
 
 
 class ChatClient(ChatBridge_client.ChatClient):
-	lastMessageReceivedTime = None
 	def __init__(self, clientConfigFile):
 		super(ChatClient, self).__init__(clientConfigFile, LogFile, ChatBridge_client.Mode.Discord)
 
 	def on_recieve_message(self, data):
 		global discordBot
-		discordBot.addMessage(data)
-		self.lastMessageReceivedTime = time.time()
+		discordBot.addChatMessage(data)
 
 	def on_recieve_command(self, data):
-		result = DiscordBot.formatMessageToDiscord(data['result'])
-		lines = result.splitlines()
-		title = lines[0]
-		lines = lines[1:]
-		if result != lib.CommandNoneResult:
-			discordBot.addResult(title, '\n'.join(lines))
-
-	def start(self):
-		self.lastMessageReceivedTime = time.time()
-		super(ChatClient, self).start(None)
-
-	def getLastMessageReceivedTime(self):
-		return self.lastMessageReceivedTime
+		result = data['result']
+		if not result['responded']:
+			return
+		if data['command'].startswith('!!stats '):
+			result_type = result['type']
+			if result_type == 0:
+				discordBot.addResult(result['stats_name'], result['result'])
+			elif result_type == 1:
+				discordBot.addMessage('Stats not found')
+			elif result_type == 2:
+				discordBot.addMessage('StatsHelper plugin not loaded')
 
 
 def ChatBridge_guardian():
@@ -181,11 +188,9 @@ def ChatBridge_guardian():
 		while True:
 			if chatClient.isOnline() == False:
 				chatClient.start()
-			if time.time() - chatClient.getLastMessageReceivedTime() > 3600 * 3: # 3h
-				chatClient.stop(True)
 			time.sleep(RetryTime)
 	except (KeyboardInterrupt, SystemExit):
-		chatClient.stop(True)
+		chatClient.stop()
 		exit(1)
 
 
@@ -203,9 +208,9 @@ while True:
 	try:
 		discordBot.startRunning()
 	except (KeyboardInterrupt, SystemExit):
-		chatClient.stop(True)
+		chatClient.stop()
 		break
 	except:
-		pass
+		print(traceback.format_exc())
 	time.sleep(RetryTime)
 #	discordBot = DiscordBot(DiscordConfigFile)

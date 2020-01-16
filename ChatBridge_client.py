@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-
+import copy
 import os
 import sys
 import time
@@ -48,7 +48,7 @@ class ChatClient(lib.ChatClientBase):
 		self.log('AESKey = ' + self.AESKey)
 		self.log('Server address = ' + utils.addressToString(self.server_addr))
 
-	def start(self, minecraftServer):
+	def start(self, minecraftServer=None):
 		self.minecraftServer = minecraftServer
 		if not self.isOnline():
 			self.log('Trying to start the client, connecting to ' + utils.addressToString(self.server_addr))
@@ -85,12 +85,24 @@ class ChatClient(lib.ChatClientBase):
 				self.minecraftServer.say(msg)
 
 	def on_recieve_command(self, data):
+		ret = copy.deepcopy(data)
 		command = data['command']
-		result = ''
-		if command.startswith('!!stats'):
-			result = stats.onServerInfo(None, None, command) if stats != None else 'StatsHelper not found'
-		data['result'] = result
-		self.sendData(json.dumps(data))
+		result = {'responded': True}
+		if command.startswith('!!stats '):
+			if stats != None:
+				stats_name, res = stats.onServerInfo(None, None, command)
+				if res != None:
+					result['type'] = 0
+					result['stats_name'] = stats_name
+					result['result'] = res
+				else:
+					result['type'] = 1
+			else:
+				result['type'] = 2
+		ret['result'] = result
+		ret_str = json.dumps(ret)
+		self.log('Command received, responding {}'.format(ret_str))
+		self.sendData(ret_str)
 
 	def sendChatMessage(self, player, message):
 		self.log('Sending chat message "' + str((player, message)) + '" to the server')
@@ -135,6 +147,7 @@ def stopClient(server, info):
 	time.sleep(1)
 
 def showClientStatus(server, info):
+	global client
 	printLines(server, info, 'ChatBridge客户端在线情况: ' + str(client.isOnline()))
 
 def onServerInfo(server, info):

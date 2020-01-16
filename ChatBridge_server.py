@@ -21,9 +21,10 @@ class ChatClient(lib.ChatClientBase):
 		if self.isOnline():
 			self.log('Stopping existing connection to start')
 			try:
-				self.stop(True)
+				self.stop()
 			except socket.error:
 				self.log('Fail to stop existing connection, ignoring that')
+			time.sleep(1)
 		self.sock, self.addr = conn, addr
 		super(ChatClient, self).start()
 
@@ -39,12 +40,12 @@ class ChatClient(lib.ChatClientBase):
 
 	def sendMessage(self, messageData):
 		if self.isOnline():
-			self.log('Sending message "' + utils.messageData_to_string(messageData) + '" to the client')
+			self.log('Sending message "{}" to the client'.format(utils.lengthLimit(utils.messageData_to_string(messageData))))
 			self.sendData(json.dumps(messageData))
 
 	def sendCommand(self, commandData):
 		if self.isOnline():
-			self.log('Sending command "' + str(commandData) + '" to the client')
+			self.log('Sending command "{}" to the client'.format(utils.lengthLimit(utils.commandData_to_string(commandData))))
 			self.sendData(json.dumps(commandData))
 
 
@@ -70,8 +71,8 @@ class ChatServer(lib.ChatBridgeBase):
 				client.sendMessage(messageData)
 
 	def transitCommand(self, senderInfo, commandData):
-		self.log('Received command "{0}", transiting'.format(str(commandData)))
-		target = commandData['receiver'] if commandData['result'] == lib.CommandNoneResult else commandData['sender']
+		self.log('Received command "{0}", transiting'.format(utils.commandData_to_string(commandData)))
+		target = commandData['sender'] if commandData['result']['responded'] else commandData['receiver']
 		for client in self.clients:
 			if client.info != senderInfo and client.info.name == target:
 				client.sendCommand(commandData)
@@ -110,14 +111,14 @@ class ChatServer(lib.ChatBridgeBase):
 				self.log('Fail to read received initializing json data: ' + str(err))
 			except socket.error:
 				self.log('Fail to respond the client')
-			time.sleep(0.1)
+			utils.sleep()
 		return True
 
 	def stop(self):
 		self.online = False
 		for i in range(len(self.clients)):
 			if self.clients[i].isOnline():
-				self.clients[i].stop(True)
+				self.clients[i].stop()
 		self.sock.close()
 		self.log('Server stopped')
 

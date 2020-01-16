@@ -2,6 +2,7 @@
 
 import os
 import sys
+import time
 
 
 def messageData_to_strings(data):
@@ -19,6 +20,17 @@ def messageData_to_strings(data):
 def messageData_to_string(data):
 	return '\n'.join(messageData_to_strings(data))
 
+def commandData_to_string(data):
+	sender = toUTF8(data['sender'])
+	receiver = toUTF8(data['receiver'])
+	command = toUTF8(data['command'])
+	result = toUTF8(data['result'])
+	if not result['responded']:
+		ret = '[{} -> {}] {}'.format(sender, receiver, command)
+	else:
+		ret = '[{} <- {}] {} | {}'.format(sender, receiver, command, lengthLimit(str(result)))
+	return ret
+
 def printLog(msg, logFileName):
 	try:
 		msg = toUTF8(msg)
@@ -30,8 +42,22 @@ def printLog(msg, logFileName):
 	except IOError:
 		print('Fail to access log file "', logFileName, '"')
 
+def sleep():
+	time.sleep(0.01)
+
+def lengthLimit(str, limit=48):
+	limit = max(limit, 4)
+	if len(str) <= limit:
+		return str
+	else:
+		n = limit - 2
+		x = int(n / 2)
+		y = n - x
+		return str[:x + 1] + '..' + str[len(str) - y:]
+
 
 # for python2 stuffs
+
 def toUTF8(str):
 	if sys.version_info.major == 3:
 		return str
