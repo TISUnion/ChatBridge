@@ -139,7 +139,7 @@ async def online(ctx):
 
 StatsCommandHelpMessage = '''> `!!stats <classification> <target> [<-bot>] [<-all>]`
 > add `-bot` to list bots
-> add `-all` to every player
+> add `-all` to list every player
 > example:
 > `!!stats used diamond_pickaxe`
 > `!!stats custom time_since_rest -bot`
@@ -204,7 +204,16 @@ thread = threading.Thread(target=ChatBridge_guardian, args=())
 thread.setDaemon(True)
 thread.start()
 
+threshold = 0
+last_time = time.time()
 while True:
+	threshold = threshold + RetryTime * 3 - (time.time() - last_time)
+	if threshold < 0:
+		threshold = 0
+	last_time = time.time()
+	if threshold >= RetryTime * 30:
+		print('I have tried my best ...')
+
 	try:
 		discordBot.startRunning()
 	except (KeyboardInterrupt, SystemExit):
@@ -214,3 +223,6 @@ while True:
 		print(traceback.format_exc())
 	time.sleep(RetryTime)
 #	discordBot = DiscordBot(DiscordConfigFile)
+
+
+print('Bye~')
