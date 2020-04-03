@@ -35,6 +35,7 @@ class Mode():
 	MCD = 'MCD'
 	Discord = 'Discord'
 
+
 class ChatClient(lib.ChatClientBase):
 	minecraftServer = None
 	def __init__(self, configFile, LogFile, mode):
@@ -94,6 +95,16 @@ class ChatClient(lib.ChatClientBase):
 				if res != None:
 					result['type'] = 0
 					result['stats_name'] = stats_name
+					result['result'] = res
+				else:
+					result['type'] = 1
+			else:
+				result['type'] = 2
+		elif command == '!!online':  # MCDR -> bungeecord rcon
+			if self.minecraftServer is not None and hasattr(self.minecraftServer, 'MCDR') and self.minecraftServer.is_rcon_running():
+				res = self.minecraftServer.rcon_query('glist')
+				if res != None:
+					result['type'] = 0
 					result['result'] = res
 				else:
 					result['type'] = 1
@@ -200,6 +211,27 @@ def onPlayerLeave(server, playername):
 #  --------------------
 # | MCDaemon Part End |
 # --------------------
+
+#  ----------------------------
+# | MCDReforged compatibility |
+# ----------------------------
+
+
+def on_load(server, old):
+	global client
+	if old is not None and old.client is not None:
+		old.client.stop()
+		time.sleep(1)
+	onServerStartup(server)
+
+
+def on_player_joined(server, playername):
+	onPlayerJoin(server, playername)
+
+
+def on_player_left(server, playername):
+	onPlayerJoin(server, playername)
+
 
 def reloadClient():
 	global ConfigFile, LogFile, client, mode

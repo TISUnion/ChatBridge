@@ -213,7 +213,7 @@ while True:
 	last_time = time.time()
 	if threshold >= RetryTime * 30:
 		print('I have tried my best ...')
-
+		break
 	try:
 		discordBot.startRunning()
 	except (KeyboardInterrupt, SystemExit):
