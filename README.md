@@ -67,6 +67,8 @@ Type `start` to start the client and type `stop` to stop the client
 
 ### Client (as a [MCD](https://github.com/kafuuchino-desu/MCDaemon) plugin)
 
+Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MCDReforged](https://github.com/Fallen-Breath/MCDReforged)
+
 1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder and `ChatBridge_client.py` in `plugins/` folder
 2. Create `config/ChatBridge_client.json` as the config file
 3. Create `log/` folder if it doesn't exist
