@@ -76,6 +76,13 @@ clientA <- server <- clientB
 		"stats_name": "aaa.bbb", // if good
 		"result": "STRING" // if good
 	}
+	[!!online]
+	"result": 
+	{
+		"responded": xxx,
+		"type": int,  // 0: good, 1: rcon query fail, 2: rcon not found
+		"result": "STRING" // if good
+	}
 
 保持链接
 sender -> receiver

@@ -26,10 +26,12 @@ class DiscordConfig():
 		self.channel = js['channel_id']
 		self.commandPrefix = js['command_prefix']
 		self.clientToQueryStats = js['client_to_query_stats']
+		self.clientToQueryOnline = js['client_to_query_online']
 		DiscordBot.log('Bot Token = ' + self.token)
 		DiscordBot.log('Channel ID = ' + str(self.channel))
 		DiscordBot.log('Command Prefix = ' + self.commandPrefix)
-		DiscordBot.log('Client to Query Stats = ' + self.clientToQueryStats)
+		DiscordBot.log('Client to Query !!stats = ' + self.clientToQueryStats)
+		DiscordBot.log('Client to Query !!online = ' + self.clientToQueryOnline)
 
 class DiscordBot(commands.Bot):
 	messages = []
@@ -90,14 +92,14 @@ class DiscordBot(commands.Bot):
 	def addMessage(self, message):
 		self.messages.append(message)
 
-	def addResult(self, title, message):
+	def addResult(self, title, message, name):
 		message.replace('    ', ' ')
 		self.log('Adding result "' + str((title, message)) + '" to Discord Bot')
 		msg = ''
 		lines = message.splitlines(keepends=True)
 		length = 0
 		for i in range(len(lines)):
-			msg += lines[i]
+			msg += self.formatMessageToDiscord(lines[i])
 			length += len(lines[i])
 			if i == len(lines) - 1 or length + len(lines[i + 1]) > 2048:
 				embed = discord.Embed(
@@ -105,7 +107,7 @@ class DiscordBot(commands.Bot):
 					description=msg,
 					color=discord.Colour.blue()
 				)
-				embed.set_author(name='Stats Rank', icon_url=EmbedIcon)
+				embed.set_author(name=name, icon_url=EmbedIcon)
 				self.messages.append(embed)
 				msg = ''
 				length = 0
@@ -135,7 +137,14 @@ async def ping(ctx):
 
 @discordBot.command()
 async def online(ctx):
-	pass
+	command = '!!online'
+	global chatClient
+	if chatClient.isOnline:
+		client = discordBot.config.clientToQueryOnline
+		discordBot.log('Sending command "{}" to client {}'.format(command, client))
+		chatClient.send_command_query(client, command)
+	else:
+		await ctx.send('ChatBridge client is offline')
 
 StatsCommandHelpMessage = '''> `!!stats <classification> <target> [<-bot>] [<-all>]`
 > add `-bot` to list bots
@@ -174,11 +183,19 @@ class ChatClient(ChatBridge_client.ChatClient):
 		if data['command'].startswith('!!stats '):
 			result_type = result['type']
 			if result_type == 0:
-				discordBot.addResult(result['stats_name'], result['result'])
+				discordBot.addResult(result['stats_name'], result['result'], 'Stats Rank')
 			elif result_type == 1:
 				discordBot.addMessage('Stats not found')
 			elif result_type == 2:
 				discordBot.addMessage('StatsHelper plugin not loaded')
+		elif data['command'] == '!!online':
+			result_type = result['type']
+			if result_type == 0:
+				discordBot.addResult('Player list', result['result'], 'Online Proxy')
+			elif result_type == 1:
+				discordBot.addMessage('Online list query failed')
+			elif result_type == 2:
+				discordBot.addMessage('Rcon is not working')
 
 
 def ChatBridge_guardian():
