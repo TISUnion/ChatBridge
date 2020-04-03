@@ -213,7 +213,7 @@ def onPlayerLeave(server, playername):
 # --------------------
 
 #  ----------------------------
-# | MCDReforged compatibility |
+# | MCDReforged Compatibility |
 # ----------------------------
 
 
@@ -231,6 +231,16 @@ def on_player_joined(server, playername):
 
 def on_player_left(server, playername):
 	onPlayerJoin(server, playername)
+
+
+def on_info(server, info):
+	info2 = copy.deepcopy(info)
+	info2.isPlayer = info2.is_player
+	onServerInfo(server, info2)
+
+#  -------------------------------
+# | MCDReforged Compatibility End|
+# -------------------------------
 
 
 def reloadClient():
