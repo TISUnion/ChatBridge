@@ -168,6 +168,27 @@ def onPlayerLeave(server, playername):
 # | MCDaemon Part End |
 # --------------------
 
+#  ----------------------------
+# | MCDReforged compatibility |
+# ----------------------------
+
+
+def on_load(server, old):
+	global client
+	if old is not None and old.client is not None:
+		old.client.stop()
+		time.sleep(1)
+	onServerStartup(server)
+
+
+def on_player_joined(server, playername):
+	onPlayerJoin(server, playername)
+
+
+def on_player_left(server, playername):
+	onPlayerJoin(server, playername)
+
+
 def reloadClient():
 	global ConfigFile, LogFile, client, mode
 	if mode == None:
