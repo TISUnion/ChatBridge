@@ -230,7 +230,7 @@ def on_player_joined(server, playername):
 
 
 def on_player_left(server, playername):
-	onPlayerJoin(server, playername)
+	onPlayerLeave(server, playername)
 
 
 def on_info(server, info):
