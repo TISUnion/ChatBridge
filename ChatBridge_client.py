@@ -127,8 +127,8 @@ def onServerInfo(server, info):
 		content = content.replace('<--[HERE]', '')
 	command = content.split()
 	if len(command) == 0 or command[0] != Prefix:
+		setMinecraftServerAndStart(server)
 		if info.isPlayer:
-			setMinecraftServerAndStart(server)
 			client.sendMessage('<' + info.player + '> ' + info.content)
 		return
 	del command[0]
