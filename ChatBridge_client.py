@@ -168,8 +168,8 @@ def onServerInfo(server, info):
 		content = content.replace('<--[HERE]', '')
 	command = content.split()
 	if len(command) == 0 or command[0] != Prefix:
+		setMinecraftServerAndStart(server)
 		if info.isPlayer:
-			setMinecraftServerAndStart(server)
 			client.log('Sending message "' + str((info.player, info.content)) + '" to the server')
 			client.sendChatMessage(info.player, info.content)
 		return

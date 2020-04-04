@@ -10,6 +10,7 @@ Broadcast chat between Minecraft servers or even discord server
 `ChatBridge_discord.py` will be a type of client that can control a discord bot
 
 ## Useage
+
 `pip install pycrypto` for python 2
 
 `pip install pycryptodome` for python 3
