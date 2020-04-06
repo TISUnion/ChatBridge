@@ -217,11 +217,13 @@ def onPlayerLeave(server, playername):
 # ----------------------------
 
 
-def on_load(server, old):
+def on_unload(server):
 	global client
-	if old is not None and old.client is not None:
-		old.client.stop()
-		time.sleep(1)
+	if client is not None:
+		client.stop()
+
+
+def on_load(server, old):
 	onServerStartup(server)
 
 
