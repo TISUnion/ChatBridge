@@ -88,13 +88,19 @@ Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MC
 2. Create `ChatBridge_client.json` and `ChatBridge_discord.json` as the config file
 3. Run `python ChatBridge_discord.py`
 
-
 `ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
 
 `ChatBridge_discord.json` format
 ```
 {
 	"bot_token": "your.bot.token.here",
-	"channel_id": 645424523965046400
+	"channel_id": 645424523965046400,
+	"command_prefix": "!!",
+	"client_to_query_stats": "MyClient1",
+	"client_to_query_online": "MyClient2"
 }
 ```
+
+`!!stats` will send command to `MyClient1` to query the StatsHelper plugin in the specific client for data
+
+`!!online` will send command to `MyClient2` to use rcon to get `glist` command reply in bungeecord server
