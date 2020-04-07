@@ -5,6 +5,5 @@ test.py
 chat.log
 *.log
 *.pyc
-ChatBridge_discord-TIS.py
 /__pycache__
 StatsHelper.py

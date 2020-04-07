@@ -1,5 +1,7 @@
 {
 	"bot_token": "your.bot.token.here",
 	"channel_id": 123000000000000000,
-	"command_prefix": "!!"
+	"command_prefix": "!!",
+	"client_to_query_stats": "MyClient1",
+	"client_to_query_online": "MyClient2"
 }
