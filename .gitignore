@@ -7,3 +7,4 @@ chat.log
 *.pyc
 /__pycache__
 StatsHelper.py
+*.zip
