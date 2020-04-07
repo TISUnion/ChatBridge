@@ -225,6 +225,8 @@ def on_unload(server):
 
 def on_load(server, old):
 	onServerStartup(server)
+	server.add_help_message(Prefix, '跨服聊天控制')
+
 
 
 def on_player_joined(server, playername):
