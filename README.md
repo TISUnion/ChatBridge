@@ -1,7 +1,7 @@
 # ChatBridge
 Broadcast chat between Minecraft servers or even discord server
 
-`ChatBridge_lib.py` is the library of ChatBridge.
+`ChatBridge_lib.py` and `ChatBridge_utils.py` are the library of ChatBridge
 
 `ChatBridge_server.py` is the server
 
@@ -17,7 +17,7 @@ Broadcast chat between Minecraft servers or even discord server
 
 ### Server
 
-1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder and `ChatBridge_server.py` in a folder
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` and `ChatBridgeLibrary/ChatBridge_utils.py` with their folder and `ChatBridge_server.py` in a folder
 2. Create `ChatBridge_server.json` as the config file
 3. Run `python ChatBridge_server.py`
 
@@ -47,7 +47,7 @@ Broadcast chat between Minecraft servers or even discord server
 
 ### Client
 
-1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder and `ChatBridge_client.py` in a folder
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` and `ChatBridgeLibrary/ChatBridge_utils.py` with their folder and `ChatBridge_client.py` in a folder
 2. Create `ChatBridge_client.json` as the config file
 3. Run `python ChatBridge_client.py`
 
@@ -70,7 +70,7 @@ Type `start` to start the client and type `stop` to stop the client
 
 Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MCDReforged](https://github.com/Fallen-Breath/MCDReforged)
 
-1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder and `ChatBridge_client.py` in `plugins/` folder
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` and `ChatBridgeLibrary/ChatBridge_utils.py` with their folder and `ChatBridge_client.py` in a folder
 2. Create `config/ChatBridge_client.json` as the config file
 3. Create `log/` folder if it doesn't exist
 4. Run MCD

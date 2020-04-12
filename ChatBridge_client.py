@@ -228,7 +228,6 @@ def on_load(server, old):
 	server.add_help_message(Prefix, '跨服聊天控制')
 
 
-
 def on_player_joined(server, playername):
 	onPlayerJoin(server, playername)
 
