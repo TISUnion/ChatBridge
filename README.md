@@ -80,9 +80,9 @@ Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MC
 
 ### Client as a discord bot 
 
-`pip install discord.py` first
-
 **python3 only**
+
+`pip install discord.py` first
 
 1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder, `ChatBridge_client.py` and `ChatBridge_discord.py` in `plugins/` folder
 2. Create `ChatBridge_client.json` and `ChatBridge_discord.json` as the config file
@@ -106,6 +106,8 @@ Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MC
 `!!online` will send command to `MyClient2` to use rcon to get `glist` command reply in bungeecord server
 
 ### Client as a CooqHttp client
+
+**python3 only**
 
 Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server running
 
