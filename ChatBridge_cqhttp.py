@@ -21,12 +21,11 @@ CQHelpMessage = '''
 !!ping: pong!
 !!mc: <消息> 向 MC 中发送聊天信息 <消息>
 !!online: 显示正版通道在线列表
-!!stats <类别> <内容> [<-bot>] [<-all>]: 查询统计信息 <类别>.<内容> 的排名
+!!stats <类别> <内容> [<-bot>]: 查询统计信息 <类别>.<内容> 的排名
 '''.strip()
 StatsHelpMessage = '''
-!!stats <类别> <内容> [<-bot>] [<-all>]
+!!stats <类别> <内容> [<-bot>]
 添加 `-bot` 来列出 bot
-添加 `-all` 来列出所有玩家
 例子:
 !!stats used diamond_pickaxe
 !!stats custom time_since_rest -bot
@@ -110,7 +109,7 @@ class CQBot(websocket.WebSocketApp):
 					if len(args) >= 1 and args[0] == '!!stats':
 						log('!!stats command triggered')
 						command = '!!stats rank ' + ' '.join(args[1:])
-						if len(args) == 0 or len(args) - int(command.find('-bot') != -1) - int(command.find('-all') != -1) != 3:
+						if len(args) == 0 or len(args) - int(command.find('-bot') != -1) != 3:
 							self.send_text(StatsHelpMessage)
 							return
 						if chatClient.isOnline:
@@ -142,11 +141,11 @@ class CQBot(websocket.WebSocketApp):
 	def send_text(self, text):
 		msg = ''
 		length = 0
-		lines = text.splitlines(keepends=True)
+		lines = text.rstrip().splitlines(keepends=True)
 		for i in range(len(lines)):
 			msg += lines[i]
 			length += len(lines[i])
-			if i == len(lines) - 1 or length + len(lines[i + 1]) > 300:
+			if i == len(lines) - 1 or length + len(lines[i + 1]) > 500:
 				self._send_text(msg)
 				msg = ''
 				length = 0
