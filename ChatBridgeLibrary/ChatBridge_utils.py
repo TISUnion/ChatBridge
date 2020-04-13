@@ -37,7 +37,7 @@ def printLog(msg, logFileName):
 		if not os.path.isfile(logFileName):
 			with open(logFileName, 'w') as f:
 				pass
-		with open(logFileName, 'a') as logfile:
+		with open(logFileName, 'a', encoding='utf8') as logfile:
 			logfile.write(stringAdd(msg, '\n'))
 	except IOError:
 		print('Fail to access log file "', logFileName, '"')

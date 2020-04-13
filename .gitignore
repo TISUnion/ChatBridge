@@ -2,7 +2,6 @@
 /release
 /log
 test.py
-chat.log
 *.log
 *.pyc
 /__pycache__

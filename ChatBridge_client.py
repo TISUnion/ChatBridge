@@ -15,6 +15,7 @@ except ImportError: # as a MCD plugin
 
 stats = None
 if os.path.isfile('plugins/StatsHelper.py'):
+	sys.path.append("plugins/")
 	import StatsHelper as stats
 
 Prefix = '!!ChatBridge'

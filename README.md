@@ -104,3 +104,30 @@ Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MC
 `!!stats` will send command to `MyClient1` to query the StatsHelper plugin in the specific client for data
 
 `!!online` will send command to `MyClient2` to use rcon to get `glist` command reply in bungeecord server
+
+### Client as a CooqHttp client
+
+Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server running
+
+`pip install websocket websocket-client` first
+
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder, `ChatBridge_client.py` and `ChatBridge_discord.py` in `plugins/` folder
+2. Create `ChatBridge_client.json` and `ChatBridge_CQHttp.json` as the config file
+3. Run `python ChatBridge_cqhttp.py`
+
+`ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
+
+`ChatBridge_CQHttp.json` format
+
+```
+{
+	"ws_address": "127.0.0.1",
+	"ws_port": 6700,
+	"access_token": "my_access_token",
+	"react_group_id": 138150445
+}
+```
+
+In MC use `!!qq <message>` to send message
+
+In QQ use `!!mc <message>` to send message
