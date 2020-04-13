@@ -131,3 +131,5 @@ Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server ru
 In MC use `!!qq <message>` to send message
 
 In QQ use `!!mc <message>` to send message
+
+Type `!!help` in QQ for more help
