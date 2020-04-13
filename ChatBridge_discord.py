@@ -78,9 +78,11 @@ class DiscordBot(commands.Bot):
 	async def on_message(self, message):
 		if message.author == self.user or message.channel.id != self.config.channel:
 			return
-		if message.content.startswith(self.config.commandPrefix):
+		args = message.content.split(' ')
+		if len(args) > 0 and args[0].startswith(self.config.commandPrefix):
 			await super(DiscordBot, self).on_message(message)
-			return
+			if args[0] != '!!qq':
+				return
 		self.log(f"{message.channel}: {message.author}: {message.author.name}: {message.content}")
 		global chatClient
 		chatClient.sendChatMessage(message.author.name, message.content)

@@ -96,11 +96,15 @@ class ChatClient(ChatBridge_client.ChatClient):
 		if cq_bot is None:
 			return
 		try:
+			messages = utils.messageData_to_strings(data)
+			for msg in messages:
+				self.log(msg)
 			try:
 				prefix, message = data['message'].split(' ', 1)
 			except:
 				pass
 			else:
+				log('Triggered command, sending message to qq')
 				if prefix == '!!qq':
 					cq_bot.send_message(data['client'], data['player'], message)
 		except:
