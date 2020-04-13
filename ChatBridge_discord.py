@@ -180,7 +180,7 @@ async def stats(ctx, *args):
 
 CommandHelpMessage = '''
 `!!help`: Display this message
-`!!qq`: <message> Send message `<message>` tp QQ group
+`!!qq <message>`: Send message `<message>` tp QQ group
 `!!online`: Show player list in online proxy
 `!!stats`: Show stats command help message
 '''.strip()
