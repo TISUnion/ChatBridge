@@ -95,12 +95,10 @@ class ChatClient(lib.ChatClientBase):
 		if command.startswith('!!stats '):
 			if stats is not None:
 				res_raw = stats.onServerInfo(None, None, command)
-				if res_raw != None:
-					if type(res_raw) is list:
-						stats_name, res = res_raw
-					else:
-						stats_name = res_raw
-						res = ''
+				if res_raw is not None:
+					lines = res_raw.splitlines()
+					stats_name = lines[0]
+					res = '\n'.join(lines[1:])
 					result['type'] = 0
 					result['stats_name'] = stats_name
 					result['result'] = res

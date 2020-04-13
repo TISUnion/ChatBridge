@@ -51,15 +51,19 @@ class DiscordBot(commands.Bot):
 					await asyncio.sleep(0.05)
 					continue
 				messageData = self.messages.pop(0)
-				if type(messageData) == dict: # chat message
+				if type(messageData) == dict:  # chat message
 					self.log('Processing chat message ' + utils.messageData_to_string(messageData))
 					for message in utils.messageData_to_strings(messageData):
-						translation = translator.translate(messageData['message'], dest='en')
-						dest = 'en'
-						if translation.src != dest:
-							message += '   | [{} -> {}] {}'.format(translation.src, dest, translation.text)
+						try:
+							translation = translator.translate(messageData['message'], dest='en')
+							dest = 'en'
+							if translation.src != dest:
+								message += '   | [{} -> {}] {}'.format(translation.src, dest, translation.text)
+						except:
+							self.log('Translate fail')
 						await channel.send(self.formatMessageToDiscord(message))
-				elif type(messageData) == discord.Embed: # embed
+				elif type(messageData) == discord.Embed:  # embed
+					self.log('Sending embed')
 					await channel.send(embed=messageData)
 				elif type(messageData) == str:
 					await channel.send(self.formatMessageToDiscord(messageData))
@@ -99,6 +103,9 @@ class DiscordBot(commands.Bot):
 		self.log('Adding result "' + str((title, message)) + '" to Discord Bot')
 		msg = ''
 		lines = message.splitlines(keepends=True)
+		if len(lines) == 0:
+			self.addMessage(title)
+			return
 		length = 0
 		for i in range(len(lines)):
 			msg += self.formatMessageToDiscord(lines[i])
@@ -110,7 +117,8 @@ class DiscordBot(commands.Bot):
 					color=discord.Colour.blue()
 				)
 				embed.set_author(name=name, icon_url=EmbedIcon)
-				self.messages.append(embed)
+				self.log('Adding embed with length {} in message list'.format(len(msg)))
+				self.addMessage(embed)
 				msg = ''
 				length = 0
 

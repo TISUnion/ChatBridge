@@ -18,6 +18,7 @@ chatClient = None
 
 CQHelpMessage = '''
 !!help: 显示本条帮助信息
+!!ping: pong!
 !!mc: <消息> 向 MC 中发送聊天信息 <消息>
 !!online: 显示正版通道在线列表
 !!stats <类别> <内容> [<-bot>] [<-all>]: 查询统计信息 <类别>.<内容> 的排名
@@ -70,7 +71,7 @@ class CQBot(websocket.WebSocketApp):
 	def on_message(self, message):
 		try:
 			global chatClient
-			log('Message received: ' + str(message))
+		#	log('Message received: ' + str(message))
 			if chatClient is None:
 				return
 			data = json.loads(message)
@@ -83,6 +84,10 @@ class CQBot(websocket.WebSocketApp):
 					if len(args) == 1 and args[0] == '!!help':
 						log('!!help command triggered')
 						self.send_text(CQHelpMessage)
+
+					if len(args) == 1 and args[0] == '!!ping':
+						log('!!ping command triggered')
+						self.send_text('pong!')
 
 					if len(args) >= 2 and args[0] == '!!mc':
 						log('!!mc command triggered')
@@ -124,7 +129,7 @@ class CQBot(websocket.WebSocketApp):
 	def on_close(self):
 		log("Close connection")
 
-	def send_text(self, text):
+	def _send_text(self, text):
 		data = {
 			"action": "send_group_msg",
 			"params": {
@@ -133,6 +138,18 @@ class CQBot(websocket.WebSocketApp):
 			}
 		}
 		self.send(json.dumps(data))
+
+	def send_text(self, text):
+		msg = ''
+		length = 0
+		lines = text.splitlines(keepends=True)
+		for i in range(len(lines)):
+			msg += lines[i]
+			length += len(lines[i])
+			if i == len(lines) - 1 or length + len(lines[i + 1]) > 300:
+				self._send_text(msg)
+				msg = ''
+				length = 0
 
 	def send_message(self, client, player, message):
 		self.send_text('[{}] <{}> {}'.format(client, player, message))
@@ -170,7 +187,7 @@ class ChatClient(ChatBridge_client.ChatClient):
 		if data['command'].startswith('!!stats '):
 			result_type = result['type']
 			if result_type == 0:
-				cq_bot.addResult('====== {} ======\n{}'.format(result['stats_name'], result['result']))
+				cq_bot.send_text('====== {} ======\n{}'.format(result['stats_name'], result['result']))
 			elif result_type == 1:
 				cq_bot.send_text('统计信息未找到')
 			elif result_type == 2:
