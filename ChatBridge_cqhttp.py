@@ -16,6 +16,20 @@ LogFile = 'ChatBridge_CQHttp.log'
 cq_bot = None
 chatClient = None
 
+CQHelpMessage = '''
+!!help: 显示本条帮助信息
+!!mc: <消息> 向 MC 中发送聊天信息 <消息>
+!!online: 显示正版通道在线列表
+!!stats <类别> <内容> [<-bot>] [<-all>]: 查询统计信息 <类别>.<内容> 的排名
+'''.strip()
+StatsHelpMessage = '''
+!!stats <类别> <内容> [<-bot>] [<-all>]
+添加 `-bot` 来列出 bot
+添加 `-all` 来列出所有玩家
+例子:
+!!stats used diamond_pickaxe
+!!stats custom time_since_rest -bot
+'''.strip()
 
 def log(msg):
 	msg = time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time())) + ' [CQBot] ' + msg
@@ -30,10 +44,14 @@ class DiscordConfig():
 		self.ws_port = js['ws_port']
 		self.access_token = js['access_token']
 		self.react_group_id = js['react_group_id']
+		self.client_to_query_stats = js['client_to_query_stats']
+		self.client_to_query_online = js['client_to_query_online']
 		log('Websocket address = {}'.format(self.ws_address))
 		log('Websocket port = {}'.format(self.ws_port))
 		log('Websocket access_token = {}'.format(self.access_token))
 		log('Reacting QQ group id = {}'.format(self.react_group_id))
+		log('Client to Query !!stats = ' + self.client_to_query_stats)
+		log('Client to Query !!online = ' + self.client_to_query_online)
 
 
 class CQBot(websocket.WebSocketApp):
@@ -56,16 +74,46 @@ class CQBot(websocket.WebSocketApp):
 			if chatClient is None:
 				return
 			data = json.loads(message)
-			if data['post_type'] == 'message' and data['message_type'] == 'group':
+			if 'status' in data:
+				log('CoolQ return status {}'.format(data['status']))
+			elif data['post_type'] == 'message' and data['message_type'] == 'group':
 				if data['anonymous'] is None and data['group_id'] == self.config.react_group_id:
-					sender = data['sender']['nickname']
-					try:
-						prefix, text = data['raw_message'].split(' ', 1)
-					except:
-						pass
-					else:
-						if prefix == '!!mc':
-							chatClient.sendChatMessage(sender, text)
+					args = data['raw_message'].split(' ')
+
+					if len(args) == 1 and args[0] == '!!help':
+						log('!!help command triggered')
+						self.send_text(CQHelpMessage)
+
+					if len(args) >= 2 and args[0] == '!!mc':
+						log('!!mc command triggered')
+						sender = data['sender']['card']
+						if len(sender) == 0:
+							sender = data['sender']['nickname']
+						text = data['raw_message'].split(' ', 1)[1]
+						chatClient.sendChatMessage(sender, text)
+
+					if len(args) == 1 and args[0] == '!!online':
+						log('!!online command triggered')
+						if chatClient.isOnline:
+							command = args[0]
+							client = self.config.client_to_query_online
+							log('Sending command "{}" to client {}'.format(command, client))
+							chatClient.send_command_query(client, command)
+						else:
+							self.send_text('ChatBridge 客户端离线')
+
+					if len(args) >= 1 and args[0] == '!!stats':
+						log('!!stats command triggered')
+						command = '!!stats rank ' + ' '.join(args[1:])
+						if len(args) == 0 or len(args) - int(command.find('-bot') != -1) - int(command.find('-all') != -1) != 3:
+							self.send_text(StatsHelpMessage)
+							return
+						if chatClient.isOnline:
+							client = self.config.client_to_query_stats
+							log('Sending command "{}" to client {}'.format(command, client))
+							chatClient.send_command_query(client, command)
+						else:
+							self.send_text('ChatBridge 客户端离线')
 		except:
 			log('Error in on_message()')
 			log(traceback.format_exc())
@@ -76,15 +124,18 @@ class CQBot(websocket.WebSocketApp):
 	def on_close(self):
 		log("Close connection")
 
-	def send_message(self, client, player, message):
+	def send_text(self, text):
 		data = {
 			"action": "send_group_msg",
 			"params": {
 				"group_id": self.config.react_group_id,
-				"message": '[{}] <{}> {}'.format(client, player, message)
+				"message": text
 			}
 		}
 		self.send(json.dumps(data))
+
+	def send_message(self, client, player, message):
+		self.send_text('[{}] <{}> {}'.format(client, player, message))
 
 
 class ChatClient(ChatBridge_client.ChatClient):
@@ -112,7 +163,26 @@ class ChatClient(ChatBridge_client.ChatClient):
 			self.log(traceback.format_exc())
 
 	def on_recieve_command(self, data):
-		pass
+		result = data['result']
+		if not result['responded']:
+			return
+		global cq_bot
+		if data['command'].startswith('!!stats '):
+			result_type = result['type']
+			if result_type == 0:
+				cq_bot.addResult('====== {} ======\n{}'.format(result['stats_name'], result['result']))
+			elif result_type == 1:
+				cq_bot.send_text('统计信息未找到')
+			elif result_type == 2:
+				cq_bot.send_text('StatsHelper 插件未加载')
+		elif data['command'] == '!!online':
+			result_type = result['type']
+			if result_type == 0:
+				cq_bot.send_text('====== 玩家列表 ======\n{}'.format(result['result']))
+			elif result_type == 1:
+				cq_bot.send_text('玩家列表查询失败')
+			elif result_type == 2:
+				cq_bot.send_text('Rcon 离线')
 
 
 def ChatBridge_guardian():

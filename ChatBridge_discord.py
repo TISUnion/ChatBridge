@@ -37,7 +37,7 @@ class DiscordBot(commands.Bot):
 	messages = []
 	def __init__(self, configFile):
 		self.config = DiscordConfig(configFile)
-		super(DiscordBot, self).__init__(self.config.commandPrefix)
+		super(DiscordBot, self).__init__(self.config.commandPrefix, help_command=None)
 
 	def startRunning(self):
 		self.log('Starting the bot')
@@ -168,6 +168,19 @@ async def stats(ctx, *args):
 		chatClient.send_command_query(client, command)
 	else:
 		await ctx.send('ChatBridge client is offline')
+
+
+CommandHelpMessage = '''
+`!!help`: Display this message
+`!!qq`: <message> Send message `<message>` tp QQ group
+`!!online`: Show player list in online proxy
+`!!stats`: Show stats command help message
+'''.strip()
+
+
+@discordBot.command()
+async def help(ctx, *args):
+	await ctx.send(CommandHelpMessage)
 
 
 class ChatClient(ChatBridge_client.ChatClient):

@@ -13,10 +13,11 @@ except ImportError: # as a MCD plugin
 	from ChatBridgeLibrary import ChatBridge_lib as lib
 	from ChatBridgeLibrary import ChatBridge_utils as utils
 
-stats = None
 if os.path.isfile('plugins/StatsHelper.py'):
 	sys.path.append("plugins/")
 	import StatsHelper as stats
+else:
+	stats = None
 
 Prefix = '!!ChatBridge'
 ConfigFile = 'ChatBridge_client.json'
@@ -90,10 +91,16 @@ class ChatClient(lib.ChatClientBase):
 		ret = copy.deepcopy(data)
 		command = data['command']
 		result = {'responded': True}
+		global stats
 		if command.startswith('!!stats '):
-			if stats != None:
-				stats_name, res = stats.onServerInfo(None, None, command)
-				if res != None:
+			if stats is not None:
+				res_raw = stats.onServerInfo(None, None, command)
+				if res_raw != None:
+					if type(res_raw) is list:
+						stats_name, res = res_raw
+					else:
+						stats_name = res_raw
+						res = ''
 					result['type'] = 0
 					result['stats_name'] = stats_name
 					result['result'] = res
