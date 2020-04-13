@@ -1,5 +1,5 @@
 # coding: utf8
-
+import codecs
 import os
 import sys
 import time
@@ -37,7 +37,7 @@ def printLog(msg, logFileName):
 		if not os.path.isfile(logFileName):
 			with open(logFileName, 'w') as f:
 				pass
-		with open(logFileName, 'a', encoding='utf8') as logfile:
+		with codecs.open(logFileName, 'a', encoding='utf8') as logfile:
 			logfile.write(stringAdd(msg, '\n'))
 	except IOError:
 		print('Fail to access log file "', logFileName, '"')
