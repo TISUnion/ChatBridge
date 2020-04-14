@@ -115,7 +115,9 @@ Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server ru
 
 1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder, `ChatBridge_client.py` and `ChatBridge_discord.py` in `plugins/` folder
 2. Create `ChatBridge_client.json` and `ChatBridge_CQHttp.json` as the config file
-3. Run `python ChatBridge_cqhttp.py`
+3. Open CoolQ with coolq-http-api enabled, then close it
+4. Open `CoolQ/data/app/io.github.richardchien.coolqhttpapi/config/<your_qq_id>.json`, set `use_ws` to `true` and set your `access_token`. You can also set `use_http` to `false` since it's not necessary
+4. Run `python ChatBridge_cqhttp.py`
 
 `ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
 
@@ -129,6 +131,9 @@ Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server ru
 	"react_group_id": 138150445
 }
 ```
+
+`ws_address`, `ws_port` and `access_token` are the same as the value in the config file of coolq-http-api
+
 
 In MC use `!!qq <message>` to send message
 
