@@ -32,7 +32,7 @@ StatsHelpMessage = '''
 '''.strip()
 
 def log(msg):
-	msg = time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time())) + ' [CQBot] ' + msg
+	msg = time.strftime('[%Y-%m-%d %H:%M:%S]', time.localtime(time.time())) + ' [CQBot] ' + str(msg)
 	print(msg)
 	utils.printLog(msg, LogFile)
 
