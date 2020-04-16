@@ -103,20 +103,31 @@ class DiscordBot(commands.Bot):
 		self.log('Adding result "' + str((title, message)) + '" to Discord Bot')
 		msg = ''
 		lines = self.formatMessageToDiscord(message).splitlines(keepends=True)
-		if len(lines) == 0:
+		message_len = len(lines)
+		if message_len == 0:
 			self.addMessage(title)
 			return
+		if name == 'Stats Rank':  # the last line is "Total: xxx"
+			message_len -= 1
 		length = 0
-		for i in range(len(lines)):
+		for i in range(message_len):
 			msg += lines[i]
 			length += len(lines[i])
-			if i == len(lines) - 1 or length + len(lines[i + 1]) > 2048:
-				embed = discord.Embed(
-					title=title,
-					description=msg,
-					color=discord.Colour.blue()
-				)
+			if i == message_len - 1 or length + len(lines[i + 1]) > 1024:
+				embed = discord.Embed(color=discord.Colour.blue())
 				embed.set_author(name=name, icon_url=EmbedIcon)
+				if name == 'Stats Rank':
+					rank = [line.split(' ')[0] for line in msg.splitlines()]
+					value = [line.split(' ')[1] for line in msg.splitlines()]
+					player = [line.split(' ')[2] for line in msg.splitlines()]
+					embed.add_field(name='Stats name', value=title, inline=False)
+					embed.add_field(name='Rank', value='\n'.join(rank), inline=True)
+					embed.add_field(name='Value', value='\n'.join(value), inline=True)
+					embed.add_field(name='Player', value='\n'.join(player), inline=True)
+					if i == message_len - 1:
+						embed.set_footer(text=lines[i + 1])  # "Total: xxx"
+				else:
+					embed.add_field(name=title, value=msg)
 				self.log('Adding embed with length {} in message list'.format(len(msg)))
 				self.addMessage(embed)
 				msg = ''
