@@ -36,6 +36,7 @@ class Mode():
 	Client = 'Client'
 	MCD = 'MCD'
 	Discord = 'Discord'
+	CoolQ = 'CoolQ'
 
 
 class ChatClient(lib.ChatClientBase):

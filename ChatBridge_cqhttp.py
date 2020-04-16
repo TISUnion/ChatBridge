@@ -37,7 +37,7 @@ def log(msg):
 	utils.printLog(msg, LogFile)
 
 
-class DiscordConfig():
+class CoolQConfig():
 	def __init__(self, configFile):
 		js = json.load(open(configFile, 'r'))
 		self.ws_address = js['ws_address']
@@ -56,7 +56,7 @@ class DiscordConfig():
 
 class CQBot(websocket.WebSocketApp):
 	def __init__(self, configFile):
-		self.config = DiscordConfig(configFile)
+		self.config = CoolQConfig(configFile)
 		websocket.enableTrace(True)
 		url = 'ws://{}:{}/'.format(self.config.ws_address, self.config.ws_port)
 		if self.config.access_token is not None:
@@ -156,7 +156,7 @@ class CQBot(websocket.WebSocketApp):
 
 class ChatClient(ChatBridge_client.ChatClient):
 	def __init__(self, clientConfigFile):
-		super(ChatClient, self).__init__(clientConfigFile, LogFile, ChatBridge_client.Mode.Discord)
+		super(ChatClient, self).__init__(clientConfigFile, LogFile, ChatBridge_client.Mode.CoolQ)
 
 	def on_recieve_message(self, data):
 		global cq_bot
@@ -216,7 +216,7 @@ def ChatBridge_guardian():
 
 
 if __name__ == '__main__':
-	print('[ChatBridge] Discord Config File = ' + CQHttpConfigFile)
+	print('[ChatBridge] CoolQ Config File = ' + CQHttpConfigFile)
 	print('[ChatBridge] ChatBridge Client Config File = ' + ClientConfigFile)
 	if not os.path.isfile(CQHttpConfigFile) or not os.path.isfile(ClientConfigFile):
 		print('[ChatBridge] Config File missing, exiting')
