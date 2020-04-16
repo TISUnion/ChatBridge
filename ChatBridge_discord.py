@@ -102,13 +102,13 @@ class DiscordBot(commands.Bot):
 		message.replace('    ', ' ')
 		self.log('Adding result "' + str((title, message)) + '" to Discord Bot')
 		msg = ''
-		lines = message.splitlines(keepends=True)
+		lines = self.formatMessageToDiscord(message).splitlines(keepends=True)
 		if len(lines) == 0:
 			self.addMessage(title)
 			return
 		length = 0
 		for i in range(len(lines)):
-			msg += self.formatMessageToDiscord(lines[i])
+			msg += lines[i]
 			length += len(lines[i])
 			if i == len(lines) - 1 or length + len(lines[i + 1]) > 2048:
 				embed = discord.Embed(
