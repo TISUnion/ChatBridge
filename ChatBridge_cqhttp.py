@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+import html
 import os
 import json
 import threading
@@ -93,7 +94,7 @@ class CQBot(websocket.WebSocketApp):
 						sender = data['sender']['card']
 						if len(sender) == 0:
 							sender = data['sender']['nickname']
-						text = data['raw_message'].split(' ', 1)[1]
+						text = html.unescape(data['raw_message'].split(' ', 1)[1])
 						chatClient.sendChatMessage(sender, text)
 
 					if len(args) == 1 and args[0] == '!!online':
