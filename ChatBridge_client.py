@@ -202,13 +202,16 @@ def onServerInfo(server, info):
 	else:
 		printLines(server, info, HelpMessage)
 
+
 def onServerStartup(server):
 	setMinecraftServerAndStart(server)
+
 
 def onPlayerJoin(server, playername):
 	setMinecraftServerAndStart(server)
 	global client
 	client.sendMessage(playername + ' joined ' + client.info.name)
+
 
 def onPlayerLeave(server, playername):
 	setMinecraftServerAndStart(server)
@@ -247,6 +250,12 @@ def on_info(server, info):
 	info2 = copy.deepcopy(info)
 	info2.isPlayer = info2.is_player
 	onServerInfo(server, info2)
+
+
+def on_death_message(server, message):
+	setMinecraftServerAndStart(server)
+	global client
+	client.sendMessage(message)
 
 #  -------------------------------
 # | MCDReforged Compatibility End|
