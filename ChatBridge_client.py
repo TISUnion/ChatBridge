@@ -95,7 +95,8 @@ class ChatClient(lib.ChatClientBase):
 		global stats
 		if command.startswith('!!stats '):
 			if stats is not None:
-				res_raw = stats.onServerInfo(None, None, command)
+				func = stats.onServerInfo if hasattr(stats, 'onServerInfo') else stats.on_info
+				res_raw = func(None, None, command)
 				if res_raw is not None:
 					lines = res_raw.splitlines()
 					stats_name = lines[0]

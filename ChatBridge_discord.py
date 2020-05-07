@@ -19,6 +19,7 @@ RetryTime = 3 # second
 EmbedIcon = 'https://cdn.discordapp.com/emojis/566212479487836160.png'
 translator = Translator()
 
+
 class DiscordConfig():
 	def __init__(self, configFile):
 		js = json.load(open(configFile, 'r'))
@@ -32,6 +33,7 @@ class DiscordConfig():
 		DiscordBot.log('Command Prefix = ' + self.commandPrefix)
 		DiscordBot.log('Client to Query !!stats = ' + self.clientToQueryStats)
 		DiscordBot.log('Client to Query !!online = ' + self.clientToQueryOnline)
+
 
 class DiscordBot(commands.Bot):
 	messages = []
@@ -99,7 +101,15 @@ class DiscordBot(commands.Bot):
 		self.messages.append(message)
 
 	def addResult(self, title, message, name):
-		message.replace('    ', ' ')
+		def process_number(text):
+			ret = x = int(text)
+			for c in ['k', 'M']:
+				if x < 1000:
+					break
+				x /= 1000
+				ret = str(round(x, 4 - len(str(int(x))))) + c
+			return str(ret)
+
 		self.log('Adding result "' + str((title, message)) + '" to Discord Bot')
 		msg = ''
 		lines = self.formatMessageToDiscord(message).splitlines(keepends=True)
@@ -118,15 +128,15 @@ class DiscordBot(commands.Bot):
 				embed.set_author(name=name, icon_url=EmbedIcon)
 				if name == 'Stats Rank':
 					rank = [line.split(' ')[0] for line in msg.splitlines()]
-					value = [line.split(' ')[1] for line in msg.splitlines()]
-					player = [line.split(' ')[2] for line in msg.splitlines()]
+					player = [line.split(' ')[1] for line in msg.splitlines()]
+					value = [process_number(line.split(' ')[2]) for line in msg.splitlines()]
 					embed.add_field(name='Stats name', value=title, inline=False)
 					embed.add_field(name='Rank', value='\n'.join(rank), inline=True)
-					embed.add_field(name='Value', value='\n'.join(value), inline=True)
 					embed.add_field(name='Player', value='\n'.join(player), inline=True)
+					embed.add_field(name='Value', value='\n'.join(value), inline=True)
 					if i == message_len - 1:
-						embed.set_footer(text=lines[i + 1])  # "Total: xxx"
-				else:
+						embed.set_footer(text='{} | {}'.format(lines[i + 1], process_number(lines[i + 1].split(' ')[-1])))  # "Total: xxx"
+				elif name == 'Online Proxy':
 					embed.add_field(name=title, value=msg)
 				self.log('Adding embed with length {} in message list'.format(len(msg)))
 				self.addMessage(embed)
