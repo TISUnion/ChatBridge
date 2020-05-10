@@ -9,6 +9,8 @@ Broadcast chat between Minecraft servers or even discord server
 
 `ChatBridge_discord.py` will be a type of client that can control a discord bot
 
+![topomap](https://raw.githubusercontent.com/TISUnion/ChatBridge/master/topomap.png)
+
 ## Useage
 
 `pip install pycrypto` for python 2
