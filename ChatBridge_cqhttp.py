@@ -4,7 +4,8 @@ import json
 import threading
 import time
 import traceback
-
+import requests
+import re
 import ChatBridge_client
 import websocket
 from ChatBridgeLibrary import ChatBridge_lib as lib
@@ -19,7 +20,6 @@ chatClient = None
 CQHelpMessage = '''
 !!help: 显示本条帮助信息
 !!ping: pong!
-!!mc: <消息> 向 MC 中发送聊天信息 <消息>
 !!online: 显示正版通道在线列表
 !!stats <类别> <内容> [<-bot>]: 查询统计信息 <类别>.<内容> 的排名
 '''.strip()
@@ -37,7 +37,7 @@ def log(msg):
 	utils.printLog(msg, LogFile)
 
 
-class DiscordConfig():
+class CoolQConfig():
 	def __init__(self, configFile):
 		js = json.load(open(configFile, 'r'))
 		self.ws_address = js['ws_address']
@@ -46,17 +46,18 @@ class DiscordConfig():
 		self.react_group_id = js['react_group_id']
 		self.client_to_query_stats = js['client_to_query_stats']
 		self.client_to_query_online = js['client_to_query_online']
+		self.prefix_mode = js['prefix_mode']
 		log('Websocket address = {}'.format(self.ws_address))
 		log('Websocket port = {}'.format(self.ws_port))
 		log('Websocket access_token = {}'.format(self.access_token))
 		log('Reacting QQ group id = {}'.format(self.react_group_id))
 		log('Client to Query !!stats = ' + self.client_to_query_stats)
 		log('Client to Query !!online = ' + self.client_to_query_online)
-
+		log('Prefix Mode = {}'.format(self.prefix_mode))
 
 class CQBot(websocket.WebSocketApp):
 	def __init__(self, configFile):
-		self.config = DiscordConfig(configFile)
+		self.config = CoolQConfig(configFile)
 		websocket.enableTrace(True)
 		url = 'ws://{}:{}/'.format(self.config.ws_address, self.config.ws_port)
 		if self.config.access_token is not None:
@@ -70,6 +71,7 @@ class CQBot(websocket.WebSocketApp):
 	def on_message(self, message):
 		try:
 			global chatClient
+			global prefix_mode
 		#	log('Message received: ' + str(message))
 			if chatClient is None:
 				return
@@ -84,19 +86,11 @@ class CQBot(websocket.WebSocketApp):
 						log('!!help command triggered')
 						self.send_text(CQHelpMessage)
 
-					if len(args) == 1 and args[0] == '!!ping':
+					elif len(args) == 1 and args[0] == '!!ping':
 						log('!!ping command triggered')
 						self.send_text('pong!')
 
-					if len(args) >= 2 and args[0] == '!!mc':
-						log('!!mc command triggered')
-						sender = data['sender']['card']
-						if len(sender) == 0:
-							sender = data['sender']['nickname']
-						text = data['raw_message'].split(' ', 1)[1]
-						chatClient.sendChatMessage(sender, text)
-
-					if len(args) == 1 and args[0] == '!!online':
+					elif len(args) == 1 and args[0] == '!!online':
 						log('!!online command triggered')
 						if chatClient.isOnline:
 							command = args[0]
@@ -106,7 +100,7 @@ class CQBot(websocket.WebSocketApp):
 						else:
 							self.send_text('ChatBridge 客户端离线')
 
-					if len(args) >= 1 and args[0] == '!!stats':
+					elif len(args) >= 1 and args[0] == '!!stats':
 						log('!!stats command triggered')
 						command = '!!stats rank ' + ' '.join(args[1:])
 						if len(args) == 0 or len(args) - int(command.find('-bot') != -1) != 3:
@@ -118,6 +112,18 @@ class CQBot(websocket.WebSocketApp):
 							chatClient.send_command_query(client, command)
 						else:
 							self.send_text('ChatBridge 客户端离线')
+
+					else:
+						sender = data['sender']['card']
+						if len(sender) == 0:
+							sender = data['sender']['nickname']
+						if prefix_mode == "True":
+							text = data['raw_message'].split(' ', 1)[1]
+							qq_to_server(text, sender)
+						else:
+							text = data['raw_message']
+							qq_to_server(text, sender, False)
+
 		except:
 			log('Error in on_message()')
 			log(traceback.format_exc())
@@ -156,7 +162,7 @@ class CQBot(websocket.WebSocketApp):
 
 class ChatClient(ChatBridge_client.ChatClient):
 	def __init__(self, clientConfigFile):
-		super(ChatClient, self).__init__(clientConfigFile, LogFile, ChatBridge_client.Mode.Discord)
+		super(ChatClient, self).__init__(clientConfigFile, LogFile, ChatBridge_client.Mode.CoolQ)
 
 	def on_recieve_message(self, data):
 		global cq_bot
@@ -214,9 +220,39 @@ def ChatBridge_guardian():
 		chatClient.stop()
 		exit(1)
 
+def qq_to_server(text, sender, prefix_mode=True):
+	text = qq_text_process(text)
+	log('Sending message {} to server...'.format(text))
+	chatClient.sendChatMessage(sender, text)
 
+def qq_text_process(text):
+	temp = re.search('\[CQ:at,qq=.*\]', text)
+	if temp is not None:
+		temp = re.search('qq=.*[^/]]', temp.group()).group()[3:-1]
+		if temp == 'all':
+			temp = '[@ 全体成员]'
+		else:
+			temp = '[@ {}]'.format(get_qq_name(temp))
+		text = re.sub('\[CQ:at.*\]', temp, text)
+	if re.search('\[CQ:image.*\]', text) is not None:
+		text = re.sub('\[CQ:image.*\]', '[图片]', text)
+	if re.search('\[CQ:face.*\]', text) is not None:
+		text = re.sub('\[CQ:face.*\]', '[表情]', text)
+	if re.search('\[CQ:record.*\]', text) is not None:
+		text = '[语音]'
+	if re.search('\[CQ:.*\]', text) is not None:
+		text = re.sub('\[CQ:.*\]', '[其他消息]', text)
+	return text
+	
+def get_qq_name(qqid):
+	print(qqid)
+	temp = requests.get('https://users.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?uins={}'.format(qqid))
+	temp_js = json.loads(temp.text[17:-1])
+	return temp_js[qqid][6]
+	
 if __name__ == '__main__':
-	print('[ChatBridge] Discord Config File = ' + CQHttpConfigFile)
+	prefix_mode = CoolQConfig(CQHttpConfigFile).prefix_mode
+	print('[ChatBridge] CoolQ Config File = ' + CQHttpConfigFile)
 	print('[ChatBridge] ChatBridge Client Config File = ' + ClientConfigFile)
 	if not os.path.isfile(CQHttpConfigFile) or not os.path.isfile(ClientConfigFile):
 		print('[ChatBridge] Config File missing, exiting')
