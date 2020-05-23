@@ -1,4 +1,4 @@
-![中文](https://www.bilibili.com/read/cv6093714)
+[中文](https://www.bilibili.com/read/cv6093714)
 
 # ChatBridge
 Broadcast chat between Minecraft servers or even discord server
