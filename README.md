@@ -1,3 +1,5 @@
+![中文](https://www.bilibili.com/read/cv6093714)
+
 # ChatBridge
 Broadcast chat between Minecraft servers or even discord server
 
@@ -113,11 +115,12 @@ Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server ru
 
 `pip install websocket websocket-client` first
 
-1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder, `ChatBridge_client.py` and `ChatBridge_discord.py` in `plugins/` folder
-2. Create `ChatBridge_client.json` and `ChatBridge_CQHttp.json` as the config file
-3. Open CoolQ with coolq-http-api enabled, then close it
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder, `ChatBridge_client.py` and `ChatBridge_CQHttp.py` in a folder
+2. Copy `ChatBridge_client.json` and `ChatBridge_CQHttp.json` to that folder as the config file
+3. Open CoolQ with coolq-http-api enabled, then disable it
 4. Open `CoolQ/data/app/io.github.richardchien.coolqhttpapi/config/<your_qq_id>.json`, set `use_ws` to `true` and set your `access_token`. You can also set `use_http` to `false` since it's not necessary
-4. Run `python ChatBridge_cqhttp.py`
+5. Enable coolq-http-api again
+6. Run `python ChatBridge_cqhttp.py`
 
 `ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
 
@@ -128,7 +131,10 @@ Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server ru
 	"ws_address": "127.0.0.1",
 	"ws_port": 6700,
 	"access_token": "my_access_token",
-	"react_group_id": 138150445
+	"react_group_id": 138150445,
+	"client_to_query_stats": "MyClient1",
+	"client_to_query_online": "MyClient2",
+	"prefix_mode": "False"
 }
 ```
 
@@ -137,6 +143,8 @@ Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server ru
 
 In MC use `!!qq <message>` to send message
 
-In QQ use `!!mc <message>` to send message
+In QQ use `!!mc <message>` to send message(if in prefix mode)
+
+If not in prefix mode, all messages in the QQ group will be forwarded to the server.
 
 Type `!!help` in QQ for more help
