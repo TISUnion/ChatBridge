@@ -1,3 +1,7 @@
+"""
+A specific client for responding !!online command for multiple bungeecord instances
+"""
+
 # -*- coding: UTF-8 -*-
 import collections
 import copy
