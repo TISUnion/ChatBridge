@@ -1,0 +1,8 @@
+[
+	{
+		"name": "my bungeecord",
+		"address": "127.0.0.1",
+		"port": 39999,
+		"password": "rcon password"
+	}
+]

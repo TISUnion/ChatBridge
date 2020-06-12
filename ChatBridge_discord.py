@@ -137,7 +137,7 @@ class DiscordBot(commands.Bot):
 					embed.add_field(name='Value', value='\n'.join(value), inline=True)
 					if i == message_len - 1:
 						embed.set_footer(text='{} | {}'.format(lines[i + 1], process_number(lines[i + 1].split(' ')[-1])))  # "Total: xxx"
-				elif name == 'Online Proxy':
+				else:
 					embed.add_field(name=title, value=msg)
 				self.log('Adding embed with length {} in message list'.format(len(msg)))
 				self.addMessage(embed)
@@ -236,7 +236,7 @@ class ChatClient(ChatBridge_client.ChatClient):
 		elif data['command'] == '!!online':
 			result_type = result['type']
 			if result_type == 0:
-				discordBot.addResult('Player list', result['result'], 'Online Proxy')
+				discordBot.addResult('Player list', result['result'], 'TIS Online players')
 			elif result_type == 1:
 				discordBot.addMessage('Online list query failed')
 			elif result_type == 2:
