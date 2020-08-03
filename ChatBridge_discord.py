@@ -107,8 +107,7 @@ class DiscordBot(commands.Bot):
 				if x < 1000:
 					break
 				x /= 1000
-				if x < 1000:
-					ret = '%.{}f'.format(4 - len(str(int(x)))) % x + c
+				ret = '%.{}f'.format(max(0, 4 - len(str(int(x))))) % x + c
 			return str(ret)
 
 		self.log('Adding result "' + str((title, message)) + '" to Discord Bot')
