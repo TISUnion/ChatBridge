@@ -85,8 +85,10 @@ class ChatClient(lib.ChatClientBase):
 		for msg in messages:
 			self.log(msg)
 			if self.mode == Mode.MCD:
-				msg = utils.stringAdd('§7', utils.stringAdd(msg, '§r'))
-				self.minecraftServer.say(msg)
+				self.minecraftServer.execute('tellraw @a {}'.format(json.dumps({
+					'text': msg,
+					'color': 'gray'
+				})))
 
 	def on_recieve_command(self, data):
 		ret = copy.deepcopy(data)
