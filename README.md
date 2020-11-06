@@ -23,6 +23,15 @@ Broadcast chat between Minecraft servers or even discord server
 2. Create `ChatBridge_server.json` as the config file
 3. Run `python ChatBridge_server.py`
 
+```
+MyFolder
+├─ ChatBridgeLibrary
+│ ├─ ChatBridge_lib.py
+│ └─ ChatBridge_utils.py
+├─ ChatBridge_server.py
+└─ ChatBridge_server.json
+```
+
 `ChatBridge_server.json` format
 ```
 {
@@ -53,6 +62,15 @@ Broadcast chat between Minecraft servers or even discord server
 2. Create `ChatBridge_client.json` as the config file
 3. Run `python ChatBridge_client.py`
 
+```
+MyFolder
+├─ ChatBridgeLibrary
+│ ├─ ChatBridge_lib.py
+│ └─ ChatBridge_utils.py
+├─ ChatBridge_client.py
+└─ ChatBridge_client.json
+```
+
 `ChatBridge_client.json` format
 ```
 {
@@ -72,13 +90,24 @@ Type `start` to start the client and type `stop` to stop the client
 
 Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MCDReforged](https://github.com/Fallen-Breath/MCDReforged)
 
-1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` and `ChatBridgeLibrary/ChatBridge_utils.py` with their folder and `ChatBridge_client.py` in a folder
+1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` and `ChatBridgeLibrary/ChatBridge_utils.py` with their folder and `ChatBridge_client.py` into `plugins` folder
 2. Create `config/ChatBridge_client.json` as the config file
 3. Create `log/` folder if it doesn't exist
 4. Run MCD
 
 `ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
 
+```
+MCDaemon
+├─ plugins
+│ ├─ ChatBridgeLibrary
+│ │ ├─ ChatBridge_lib.py
+│ │ └─ ChatBridge_utils.py
+│ └─ ChatBridge_client.py
+│─ config
+| └─ ChatBridge_client.json
+└─ ...
+```
 
 ### Client as a discord bot 
 
@@ -91,6 +120,16 @@ Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MC
 3. Run `python ChatBridge_discord.py`
 
 `ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
+
+```
+MyFolder
+├─ ChatBridgeLibrary
+│ ├─ ChatBridge_lib.py
+│ └─ ChatBridge_utils.py
+├─ ChatBridge_discord.py
+├─ ChatBridge_discord.json
+└─ ChatBridge_client.json
+```
 
 `ChatBridge_discord.json` format
 ```
@@ -109,6 +148,8 @@ Compatible with  [MCDaemon](https://github.com/kafuuchino-desu/MCDaemon) and [MC
 
 ### Client as a CooqHttp client
 
+:ghost: CoolQ is down so rip
+
 **python3 only**
 
 Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server running
@@ -122,6 +163,16 @@ Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server ru
 4. Run `python ChatBridge_cqhttp.py`
 
 `ChatBridge_client.json` is exactly the same as above, but u can custom the displayed text color in it
+
+```
+MyFolder
+├─ ChatBridgeLibrary
+│ ├─ ChatBridge_lib.py
+│ └─ ChatBridge_utils.py
+├─ ChatBridge_CQHttp.py
+├─ ChatBridge_CQHttp.json
+└─ ChatBridge_client.json
+```
 
 `ChatBridge_CQHttp.json` format
 
