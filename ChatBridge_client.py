@@ -260,6 +260,18 @@ def on_death_message(server, message):
 	global client
 	client.sendMessage(message)
 
+
+def on_server_startup(server):
+	setMinecraftServerAndStart(server)
+	global client
+	client.sendMessage('server ' + client.info.name + ' has started up')
+
+
+def on_server_stop(server, return_code):
+	setMinecraftServerAndStart(server)
+	global client
+	client.sendMessage('server ' + client.info.name  + ' stopped')
+
 #  -------------------------------
 # | MCDReforged Compatibility End|
 # -------------------------------
