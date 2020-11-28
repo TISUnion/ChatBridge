@@ -376,12 +376,13 @@ class ChatClientBase(ChatBridgeBase):
 		else:
 			self.log('Cannot send message since client is offline')
 
-	def send_command_query(self, receiver, command, sock=None):
+	def send_command_query(self, receiver, command, extra=None, sock=None):
 		js = {
 			'action': 'command',
 			'sender': self.info.name,
 			'receiver': receiver,
 			'command': command,
+			'extra': extra,
 			'result': {
 				'responded': False
 			}
