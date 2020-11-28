@@ -1,21 +1,19 @@
 # -*- coding: UTF-8 -*-
-import collections
-import os
-import json
-import queue
-import time
 import asyncio
+import collections
+import json
+import os
+import queue
 import threading
-from queue import Queue
-from typing import List
+import time
+import traceback
+
+import discord
+from discord.ext import commands
+from googletrans import Translator
 
 import ChatBridge_client
-import traceback
-import discord
-from ChatBridgeLibrary import ChatBridge_lib as lib
 from ChatBridgeLibrary import ChatBridge_utils as utils
-from googletrans import Translator
-from discord.ext import commands
 
 DiscordConfigFile = 'ChatBridge_discord.json'
 ClientConfigFile = 'ChatBridge_client.json'
@@ -75,7 +73,7 @@ class DiscordBot(commands.Bot):
 				data = messageData.data
 				if messageData.type == MessageDataType.CHAT:  # chat message
 					assert isinstance(data, dict)
-					self.log('Processing chat message from chatbridge' + utils.messageData_to_string(data))
+					self.log('Processing chat message from chatbridge: ' + utils.messageData_to_string(data))
 					for message in utils.messageData_to_strings(data):
 						try:
 							translation = translator.translate(data['message'], dest='en')
@@ -200,13 +198,19 @@ async def online(ctx):
 		else:
 			await ctx.send('ChatBridge client is offline')
 
-StatsCommandHelpMessage = '''> `!!stats <classification> <target> [<-bot>] [<-all>]`
-> add `-bot` to list bots (dumb filter tho)
-> add `-all` to list every player (spam warning)
-> example:
-> `!!stats used diamond_pickaxe`
-> `!!stats custom time_since_rest -bot`
-'''
+StatsCommandHelpMessage = '''
+`!!stats <classification> <target> [<-bot>] [<-all>]`
+add `-bot` to list bots (dumb filter tho)
+add `-all` to list every player (spam warning)
+`<classification>`: `killed`, `killed_by`, `dropped`, `picked_up`, `used`, `mined`, `broken`, `crafted`, `custom`
+the `<target>` of `killed`, `killed_by` are entity type
+the `<target>` of `picked_up`, `used`, `mined`, `broken`, `crafted` are block/item id
+for the `<target>` of `custom` or more info, check https://minecraft.gamepedia.com/Statistics
+Example:
+`!!stats used diamond_pickaxe`
+`!!stats custom time_since_rest -bot`
+'''.strip()
+
 @discordBot.command()
 async def stats(ctx, *args):
 	command = '!!stats rank ' + ' '.join(args)
