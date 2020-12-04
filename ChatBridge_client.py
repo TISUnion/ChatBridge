@@ -5,6 +5,8 @@ import sys
 import time
 import json
 import socket
+from threading import Lock
+
 try:
 	from ChatBridgeLibrary import ChatBridge_lib as lib
 	from ChatBridgeLibrary import ChatBridge_utils as utils
@@ -40,7 +42,6 @@ class Mode():
 
 
 class ChatClient(lib.ChatClientBase):
-	minecraftServer = None
 	def __init__(self, configFile, LogFile, mode):
 		js = json.load(open(configFile, 'r'))
 		super(ChatClient, self).__init__(lib.ChatClientInfo(js['name'], js['password']), js['aes_key'], LogFile)
@@ -51,34 +52,43 @@ class ChatClient(lib.ChatClientBase):
 		self.log('Mode = ' + mode)
 		self.log('AESKey = ' + self.AESKey)
 		self.log('Server address = ' + utils.addressToString(self.server_addr))
+		self.minecraftServer = None
+		self.start_lock = Lock()
 
 	def start(self, minecraftServer=None):
-		self.minecraftServer = minecraftServer
-		if not self.isOnline():
-			self.log('Trying to start the client, connecting to ' + utils.addressToString(self.server_addr))
-			self.sock = socket.socket()
-			# 发送客户端信息
-			try:
-				self.sock.connect(self.server_addr)
-				self.send_login(self.info.name, self.info.password)
-			except socket.error:
-				self.log('Fail to connect to the server')
-				return
-			# 获取登录结果
-			try:
-				data = self.recieveData()
-				result = json.loads(data)['result']
-			except socket.error:
-				self.log('Fail to receive login result')
-				return
-			except ValueError:
-				self.log('Fail to read login result')
-				return
-			self.log(utils.stringAdd('Result: ', result))
-			if result == 'login success':
-				super(ChatClient, self).start()
-		else:
-			self.log('Client has already been started')
+		acq = self.start_lock.acquire(False)
+		if not acq:
+			return
+		try:
+			self.minecraftServer = minecraftServer
+			if not self.isOnline():
+				self.log('Trying to start the client, connecting to ' + utils.addressToString(self.server_addr))
+				self.sock = socket.socket()
+				# 发送客户端信息
+				try:
+					self.sock.settimeout(5)
+					self.sock.connect(self.server_addr)
+					self.send_login(self.info.name, self.info.password)
+				except socket.error:
+					self.log('Fail to connect to the server')
+					return
+				# 获取登录结果
+				try:
+					data = self.recieveData(timeout=5)
+					result = json.loads(data)['result']
+				except socket.error:
+					self.log('Fail to receive login result')
+					return
+				except ValueError:
+					self.log('Fail to read login result')
+					return
+				self.log(utils.stringAdd('Result: ', result))
+				if result == 'login success':
+					super(ChatClient, self).start()
+			else:
+				self.log('Client has already been started')
+		finally:
+			self.start_lock.release()
 
 	def on_recieve_message(self, data):
 		messages = utils.messageData_to_strings(data)
@@ -196,6 +206,7 @@ def onServerInfo(server, info):
 		stopClient(server, info)
 		reloadClient()
 		startClient(server, info)
+		showClientStatus(server, info)
 	elif cmdLen == 1 and command[0] == 'start':
 		startClient(server, info)
 		showClientStatus(server, info)
@@ -268,7 +279,6 @@ def on_server_startup(server):
 
 
 def on_server_stop(server, return_code):
-	setMinecraftServerAndStart(server)
 	global client
 	client.sendMessage('Server stopped')
 
@@ -289,7 +299,7 @@ def reloadClient():
 	client = ChatClient(ConfigFile, LogFile, mode)
 
 
-client = None
+client = None  # type: ChatClient
 mode = None
 
 if __name__ == '__main__':
@@ -303,6 +313,7 @@ if mode == Mode.Client:
 	reloadClient()
 	client.start(None)
 	while True:
+		# noinspection PyUnresolvedReferences
 		msg = raw_input() if sys.version_info.major == 2 else input()
 		if msg == 'stop':
 			client.stop(True)

@@ -2,9 +2,12 @@
 
 import os
 import sys
+import threading
 import time
 import json
 import socket
+import traceback
+
 from ChatBridgeLibrary import ChatBridge_lib as lib
 from ChatBridgeLibrary import ChatBridge_utils as utils
 
@@ -33,10 +36,10 @@ class ChatClient(lib.ChatClientBase):
 		super(ChatClient, self).run()
 
 	def on_recieve_message(self, data):
-		server.boardcastMessage(self.info, data)
+		self.server.boardcastMessage(self.info, data)
 
 	def on_recieve_command(self, data):
-		server.transitCommand(self.info, data)
+		self.server.transitCommand(self.info, data)
 
 	def sendMessage(self, messageData):
 		if self.isOnline():
@@ -87,51 +90,101 @@ class ChatServer(lib.ChatBridgeBase):
 		self.sock.listen(5)
 		self.online = True
 		self.log('Server Started')
-		while self.isOnline():
-			conn, addr = self.sock.accept()
-			self.log('Client {0} connected, receiving initializing data'.format(utils.addressToString(addr)))
-			try:
-				js = json.loads(self.recieveData(conn)) # 接受客户端信息的数据包
-				self.log('Initializing data =' + str(js))
-				if js['action'] == 'login':
-					info = lib.ChatClientInfo(js['name'], js['password'])
-					flag = False
-					for client in self.clients:
-						if client.info == info:
-							self.send_result('login success', conn)
-							flag = True
-							self.log('Starting client "' + client.info.name + '"')
-							client.tryStart(conn, addr)
-							break
-					if flag == False:
-						self.send_result('login fail', conn)
-				else:
-					self.log('Action not matches, ignore')
-			except (ValueError, TypeError, KeyError) as err:
-				self.log('Fail to read received initializing json data: ' + str(err))
-			except socket.error:
-				self.log('Fail to respond the client')
-			utils.sleep()
+		self.start_console_thread()
+		try:
+			while self.isOnline():
+				conn, addr = self.sock.accept()
+				self.handle_client_connection(conn, addr)
+				self.log('Client {0} connected, receiving initializing data'.format(utils.addressToString(addr)))
+				utils.sleep()
+		except:
+			if self.isOnline():
+				raise
 		return True
 
+	def handle_client_connection(self, conn, addr):
+		try:
+			js = json.loads(self.recieveData(conn))  # 接受客户端信息的数据包
+			self.log('Initializing data =' + str(js))
+			if js['action'] == 'login':
+				info = lib.ChatClientInfo(js['name'], js['password'])
+				flag = False
+				for client in self.clients:
+					if client.info == info:
+						self.send_result('login success', conn)
+						flag = True
+						self.log('Starting client "' + client.info.name + '"')
+						client.tryStart(conn, addr)
+						break
+				if flag == False:
+					self.send_result('login fail', conn)
+			else:
+				self.log('Action not matches, ignore')
+		except (ValueError, TypeError, KeyError) as err:
+			self.log('Fail to read received initializing json data: ' + str(err))
+		except socket.error:
+			self.log('Fail to respond the client')
+
 	def stop(self):
+		self.log('Server is stoppping')
 		self.online = False
-		for i in range(len(self.clients)):
-			if self.clients[i].isOnline():
-				self.clients[i].stop()
+		for client in self.clients:
+			if client.isOnline():
+				client.stop()
 		self.sock.close()
 		self.log('Server stopped')
 
+	def console_loop(self):
+		while self.isOnline():
+			# noinspection PyUnresolvedReferences
+			text = raw_input() if sys.version_info.major == 2 else input()
+			self.log('Processing user input "{}"'.format(text))
+			if text == 'stop':
+				self.stop()
+			elif text.startswith('stop') and text.find(' ') != -1:
+				target_name = text.split(' ', 1)[1]
+				for client in self.clients:
+					if client.info.name == target_name:
+						self.log('Stopping client {}'.format(target_name))
+						try:
+							client.stop()
+						except:
+							traceback.print_exc()
+						break
+				else:
+					self.log('Client {} not found'.format(target_name))
+			elif text == 'list':
+				self.log('client count: {}'.format(len(self.clients)))
+				for client in self.clients:
+					self.log('- {}: online = {}'.format(client.info.name, client.isOnline()))
+			else:
+				print('''
+Type "stop" to stop the server
+Type "stop client_name" to stop a client
+Type "list" to show the client list
+				'''.strip())
 
-if len(sys.argv) == 2:
-	ConfigFile = sys.argv[1]
-print('[ChatBridge] Config File = ' + ConfigFile)
-if os.path.isfile(ConfigFile):
-	server = ChatServer(ConfigFile)
-	try:
-		server.run()
-	except (KeyboardInterrupt, SystemExit):
-		server.stop()
-else:
-	print('[ChatBridge] Config File not Found')
-print('[ChatBridge] Program exiting ...')
+	def start_console_thread(self):
+		console_thread = threading.Thread(target=self.console_loop)
+		console_thread.setDaemon(True)
+		console_thread.start()
+
+
+def main():
+	global ConfigFile
+	if len(sys.argv) == 2:
+		ConfigFile = sys.argv[1]
+	print('[ChatBridge] Config File = ' + ConfigFile)
+	if os.path.isfile(ConfigFile):
+		server = ChatServer(ConfigFile)
+		try:
+			server.run()
+		except (KeyboardInterrupt, SystemExit):
+			server.stop()
+	else:
+		print('[ChatBridge] Config File not Found')
+	print('[ChatBridge] Program exiting ...')
+
+
+if __name__ == '__main__':
+	main()
