@@ -1,5 +1,8 @@
 # ChatBridge
+
 Broadcast chat between Minecraft servers or even discord server
+
+**[WARNING]** ChatBridge is mainly for TIS's custom use so expect messy code structures and hardcoded constants
 
 `ChatBridge_lib.py` and `ChatBridge_utils.py` are the library of ChatBridge
 
