@@ -6,6 +6,7 @@ import time
 import json
 import socket
 from threading import Lock
+from typing import Optional
 
 try:
 	from ChatBridgeLibrary import ChatBridge_lib as lib
@@ -143,9 +144,26 @@ class ChatClient(lib.ChatClientBase):
 		self.log('Sending message "' + message + '" to the server')
 		self.send_message(self.info.name, '', message)
 
-#  ----------------------
-# | MCDaemon Part Start |
-# ----------------------
+#  ------------------
+# | MCDR Part Start |
+# ------------------
+
+PLUGIN_METADATA = {
+	'id': 'chatbridge_client',
+	'version': '1.0.0',
+	'name': 'ChatBridge_client',
+	'author': 'Fallen_Breath',
+	'link': 'https://github.com/TISUnion/ChatBridge',
+	# 'dependencies': {
+	# 	'mcdreforged': '>=1.0.2'
+	# }
+}
+
+def thread_spam(func):
+	# import here to avoid dependency restriction outside MCDR
+	# only works for MCDR 1.0+
+	from mcdreforged.api.decorator import new_thread
+	return new_thread('ChatBridge')(func)
 
 def printLines(server, info, msg, isTell = True):
 	for line in msg.splitlines():
@@ -177,119 +195,113 @@ def stopClient(server, info):
 	client.stop(True)
 	time.sleep(1)
 
+
 def showClientStatus(server, info):
 	global client
 	printLines(server, info, 'ChatBridge客户端在线情况: ' + str(client.isOnline()))
 
-def onServerInfo(server, info):
+
+def on_user_info(server, info):
 	global client
 	content = info.content
-	if not info.isPlayer and content.endswith('<--[HERE]'):
-		content = content.replace('<--[HERE]', '')
 	command = content.split()
 	if len(command) == 0 or command[0] != Prefix:
-		setMinecraftServerAndStart(server)
-		if info.isPlayer:
+		if info.is_player:
 			client.log('Sending message "' + str((info.player, info.content)) + '" to the server')
 			client.sendChatMessage(info.player, info.content)
 		return
 	del command[0]
 
 	cmdLen = len(command)
-	if cmdLen == 0:
-		printLines(server, info, HelpMessage)
-		return
 
-	if cmdLen == 1 and command[0] == 'status':
-		showClientStatus(server, info)
-	elif cmdLen == 1 and command[0] == 'reload':
-		stopClient(server, info)
-		reloadClient()
-		startClient(server, info)
-		showClientStatus(server, info)
-	elif cmdLen == 1 and command[0] == 'start':
-		startClient(server, info)
-		showClientStatus(server, info)
-	elif cmdLen == 1 and command[0] == 'stop':
-		stopClient(server, info)
-		showClientStatus(server, info)
-	else:
-		printLines(server, info, HelpMessage)
+	@thread_spam
+	def processInfo():
+		if cmdLen == 0:
+			printLines(server, info, HelpMessage)
+			return
 
+		if cmdLen == 1 and command[0] == 'status':
+			showClientStatus(server, info)
+		elif cmdLen == 1 and command[0] == 'reload':
+			stopClient(server, info)
+			reloadClient()
+			startClient(server, info)
+			showClientStatus(server, info)
+		elif cmdLen == 1 and command[0] == 'start':
+			startClient(server, info)
+			showClientStatus(server, info)
+		elif cmdLen == 1 and command[0] == 'stop':
+			stopClient(server, info)
+			showClientStatus(server, info)
+		else:
+			printLines(server, info, HelpMessage)
 
-def onServerStartup(server):
-	setMinecraftServerAndStart(server)
-
-
-def onPlayerJoin(server, playername):
-	setMinecraftServerAndStart(server)
-	global client
-	client.sendMessage(playername + ' joined ' + client.info.name)
+	processInfo()
 
 
-def onPlayerLeave(server, playername):
-	setMinecraftServerAndStart(server)
-	global client
-	client.sendMessage(playername + ' left ' + client.info.name)
-
-#  --------------------
-# | MCDaemon Part End |
-# --------------------
-
-#  ----------------------------
-# | MCDReforged Compatibility |
-# ----------------------------
+def threadedSendMessage(message: str):
+	@thread_spam
+	def inner():
+		global client
+		client.sendMessage(message)
+	inner()
 
 
-def on_unload(server):
-	global client
-	if client is not None:
-		client.stop()
-
-
-def on_load(server, old):
-	onServerStartup(server)
-	server.add_help_message(Prefix, '跨服聊天控制')
-
-
-def on_player_joined(server, playername):
-	onPlayerJoin(server, playername)
+def on_player_joined(server, playername, info):
+	threadedSendMessage(playername + ' joined ' + client.info.name)
 
 
 def on_player_left(server, playername):
-	onPlayerLeave(server, playername)
+	threadedSendMessage(playername + ' left ' + client.info.name)
 
 
-def on_info(server, info):
-	info2 = copy.deepcopy(info)
-	info2.isPlayer = info2.is_player
-	onServerInfo(server, info2)
-
-
-def on_death_message(server, message):
+def on_load(server, old):
+	server.register_help_message(Prefix, '跨服聊天控制')
 	setMinecraftServerAndStart(server)
+
+
+# only in MCDR 0.x
+def on_death_message(server, message):
 	global client
 	client.sendMessage(message)
 
 
 def on_server_startup(server):
-	setMinecraftServerAndStart(server)
-	global client
-	client.sendMessage('Server has started up')
+	threadedSendMessage('Server has started up')
 
 
 def on_server_stop(server, return_code):
-	global client
-	client.sendMessage('Server stopped')
+	threadedSendMessage('Server stopped')
 
-#  -------------------------------
-# | MCDReforged Compatibility End|
-# -------------------------------
+
+def _stop():
+	@thread_spam
+	def inner():
+		global client
+		if client is not None:
+			client.stop()
+	inner()
+
+
+def on_unload(server):
+	_stop()
+
+
+def on_remove(server):
+	_stop()
+
+
+def on_mcdr_stop(server):
+	_stop()
+
+#  -------------------------
+# | MCDR Compatibility End |
+# -------------------------
 
 
 def reloadClient():
 	global ConfigFile, LogFile, client, mode
-	if mode == None:
+	if mode is None:
 		if __name__ == '__main__':
 			mode = Mode.Client
 		else:
@@ -299,7 +311,7 @@ def reloadClient():
 	client = ChatClient(ConfigFile, LogFile, mode)
 
 
-client = None  # type: ChatClient
+client = None  # type: Optional[ChatClient]
 mode = None
 
 if __name__ == '__main__':
