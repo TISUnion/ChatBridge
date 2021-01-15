@@ -307,7 +307,7 @@ def reloadClient():
 		else:
 			mode = Mode.MCD
 			ConfigFile = 'config/' + ConfigFile
-			LogFile = 'log/' + LogFile
+			LogFile = 'logs/' + LogFile
 	client = ChatClient(ConfigFile, LogFile, mode)
 
 
