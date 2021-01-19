@@ -1,10 +1,10 @@
 # -*- coding: UTF-8 -*-
 import copy
+import json
 import os
+import socket
 import sys
 import time
-import json
-import socket
 from threading import Lock
 from typing import Optional
 
@@ -15,13 +15,6 @@ except ImportError: # as a MCD plugin
 	sys.path.append("plugins/")
 	from ChatBridgeLibrary import ChatBridge_lib as lib
 	from ChatBridgeLibrary import ChatBridge_utils as utils
-
-if os.path.isfile('plugins/StatsHelper.py'):
-	sys.path.append("plugins/")
-	import StatsHelper as stats
-else:
-	stats = None
-
 Prefix = '!!ChatBridge'
 ConfigFile = 'ChatBridge_client.json'
 LogFile = 'ChatBridge_client.log'
@@ -103,13 +96,21 @@ class ChatClient(lib.ChatClientBase):
 
 	def on_recieve_command(self, data):
 		ret = copy.deepcopy(data)
-		command = data['command']
+		command = data['command']  # type: str
 		result = {'responded': True}
-		global stats
 		if command.startswith('!!stats '):
+			stats = None
+			if self.mode == Mode.MCD:
+				stats = self.minecraftServer.get_plugin_instance('stats_helper')  # MCDR 1.0+
 			if stats is not None:
-				func = stats.onServerInfo if hasattr(stats, 'onServerInfo') else stats.on_info
-				res_raw = func(None, None, command)
+				trimmed_command = command.replace('-bot', '').replace('-all', '')
+				try:
+					prefix, typ, cls, target = trimmed_command.split()
+					assert typ == 'rank' and type(target) is str
+				except:
+					res_raw = None
+				else:
+					res_raw = stats.show_rank(None, None, cls, target, '-bot' in command, False, '-all' in command, True)
 				if res_raw is not None:
 					lines = res_raw.splitlines()
 					stats_name = lines[0]
