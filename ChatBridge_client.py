@@ -168,7 +168,7 @@ def thread_spam(func):
 
 def printLines(server, info, msg, isTell = True):
 	for line in msg.splitlines():
-		if info.isPlayer:
+		if info.is_player:
 			if isTell:
 				server.tell(info.player, line)
 			else:
