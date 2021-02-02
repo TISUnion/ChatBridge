@@ -151,7 +151,7 @@ class ChatClient(lib.ChatClientBase):
 
 PLUGIN_METADATA = {
 	'id': 'chatbridge_client',
-	'version': '1.0.0',
+	'version': '1.0.1',
 	'name': 'ChatBridge_client',
 	'author': 'Fallen_Breath',
 	'link': 'https://github.com/TISUnion/ChatBridge',
@@ -160,11 +160,13 @@ PLUGIN_METADATA = {
 	# }
 }
 
+
 def thread_spam(func):
 	# import here to avoid dependency restriction outside MCDR
 	# only works for MCDR 1.0+
 	from mcdreforged.api.decorator import new_thread
 	return new_thread('ChatBridge')(func)
+
 
 def printLines(server, info, msg, isTell = True):
 	for line in msg.splitlines():
@@ -208,8 +210,12 @@ def on_user_info(server, info):
 	command = content.split()
 	if len(command) == 0 or command[0] != Prefix:
 		if info.is_player:
-			client.log('Sending message "' + str((info.player, info.content)) + '" to the server')
-			client.sendChatMessage(info.player, info.content)
+			@thread_spam
+			def sending():
+				setMinecraftServerAndStart(server)
+				client.log('Sending message "' + str((info.player, info.content)) + '" to the server')
+				client.sendChatMessage(info.player, info.content)
+			sending()
 		return
 	del command[0]
 
