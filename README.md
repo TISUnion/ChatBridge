@@ -151,11 +151,11 @@ MyFolder
 
 ### Client as a CooqHttp client
 
-:ghost: CoolQ is down so rip
-
 **python3 only**
 
-Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server running
+~~Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server running~~ (:ghost: it's down)
+
+Needs any CoolQ Http protocol provider to work. e.g. [go-cqhttp](https://github.com/Mrs4s/go-cqhttp)
 
 `pip install websocket websocket-client` first
 

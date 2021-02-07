@@ -1,21 +1,22 @@
 # -*- coding: UTF-8 -*-
 import html
-import os
 import json
+import os
 import threading
 import time
 import traceback
+from typing import Optional
+
+import websocket
 
 import ChatBridge_client
-import websocket
-from ChatBridgeLibrary import ChatBridge_lib as lib
 from ChatBridgeLibrary import ChatBridge_utils as utils
 
 CQHttpConfigFile = 'ChatBridge_CQHttp.json'
 ClientConfigFile = 'ChatBridge_client.json'
 LogFile = 'ChatBridge_CQHttp.log'
 cq_bot = None
-chatClient = None
+chatClient = None  # type: Optional[ChatClient]
 
 CQHelpMessage = '''
 !!help: 显示本条帮助信息
@@ -87,7 +88,7 @@ class CQBot(websocket.WebSocketApp):
 
 					if len(args) == 1 and args[0] == '!!ping':
 						log('!!ping command triggered')
-						self.send_text('pong!')
+						self.send_text('pong!!')
 
 					if len(args) >= 2 and args[0] == '!!mc':
 						log('!!mc command triggered')
@@ -172,8 +173,8 @@ class ChatClient(ChatBridge_client.ChatClient):
 			except:
 				pass
 			else:
-				log('Triggered command, sending message to qq')
 				if prefix == '!!qq':
+					log('Triggered command, sending message to qq')
 					cq_bot.send_message(data['client'], data['player'], message)
 		except:
 			self.log('Error in on_message()')
@@ -214,6 +215,8 @@ def ChatBridge_guardian():
 	except (KeyboardInterrupt, SystemExit):
 		chatClient.stop()
 		exit(1)
+	except:
+		traceback.print_exc()
 
 
 if __name__ == '__main__':
@@ -226,6 +229,7 @@ if __name__ == '__main__':
 	thread = threading.Thread(target=ChatBridge_guardian, args=())
 	thread.setDaemon(True)
 	thread.start()
+	print('Starting CQ Bot')
 	cq_bot = CQBot(CQHttpConfigFile)
 	cq_bot.start()
 	print('Bye~')
