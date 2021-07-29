@@ -116,7 +116,7 @@ MCDaemon
 
 **python3 only**
 
-`pip install discord.py` first
+`pip install discord.py googletrans` first
 
 1. Grab `ChatBridgeLibrary/ChatBridge_lib.py` with its folder, `ChatBridge_client.py` and `ChatBridge_discord.py` in `plugins/` folder
 2. Create `ChatBridge_client.json` and `ChatBridge_discord.json` as the config file
