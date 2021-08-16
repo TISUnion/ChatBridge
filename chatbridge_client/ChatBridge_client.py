@@ -99,7 +99,13 @@ class ChatClient(lib.ChatClientBase):
 		if command.startswith('!!stats '):
 			stats = None
 			if self.mode == Mode.MCD:
-				stats = self.minecraftServer.get_plugin_instance('stats_helper')  # MCDR 1.0+
+				try:
+					import stats_helper as stats  # MCDR 2.x
+				except:
+					try:
+						stats = self.minecraftServer.get_plugin_instance('stats_helper')  # MCDR 1.0+
+					except:
+						pass
 			if stats is not None:
 				trimmed_command = command.replace('-bot', '').replace('-all', '')
 				try:
@@ -108,7 +114,7 @@ class ChatClient(lib.ChatClientBase):
 				except:
 					res_raw = None
 				else:
-					res_raw = stats.show_rank(None, None, cls, target, '-bot' in command, False, '-all' in command, True)
+					res_raw = stats.show_rank(self.minecraftServer.get_plugin_command_source(), cls, target, list_bot='-bot' in command, is_tell=False, is_all='-all' in command, is_called=True)
 				if res_raw is not None:
 					lines = res_raw.splitlines()
 					stats_name = lines[0]

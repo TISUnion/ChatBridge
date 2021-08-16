@@ -8,3 +8,4 @@ test.py
 StatsHelper.py
 *.zip
 *.mcdr
+/stats_helper
