@@ -7,3 +7,4 @@ test.py
 /__pycache__
 StatsHelper.py
 *.zip
+*.mcdr

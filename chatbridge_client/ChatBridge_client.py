@@ -8,13 +8,11 @@ import time
 from threading import Lock
 from typing import Optional
 
-try:
-	from ChatBridgeLibrary import ChatBridge_lib as lib
-	from ChatBridgeLibrary import ChatBridge_utils as utils
-except ImportError: # as a MCD plugin
-	sys.path.append("plugins/")
-	from ChatBridgeLibrary import ChatBridge_lib as lib
-	from ChatBridgeLibrary import ChatBridge_utils as utils
+from mcdreforged.api.all import *
+
+from chatbridge_client import ChatBridge_lib as lib
+from chatbridge_client import ChatBridge_utils as utils
+
 Prefix = '!!ChatBridge'
 ConfigFile = 'ChatBridge_client.json'
 LogFile = 'ChatBridge_client.log'
@@ -149,17 +147,6 @@ class ChatClient(lib.ChatClientBase):
 # | MCDR Part Start |
 # ------------------
 
-PLUGIN_METADATA = {
-	'id': 'chatbridge_client',
-	'version': '1.0.1',
-	'name': 'ChatBridge_client',
-	'author': 'Fallen_Breath',
-	'link': 'https://github.com/TISUnion/ChatBridge',
-	# 'dependencies': {
-	# 	'mcdreforged': '>=1.0.2'
-	# }
-}
-
 
 def thread_spam(func):
 	# import here to avoid dependency restriction outside MCDR
@@ -168,30 +155,27 @@ def thread_spam(func):
 	return new_thread('ChatBridge')(func)
 
 
-def printLines(server, info, msg, isTell = True):
+def printLines(source: CommandSource, msg):
 	for line in msg.splitlines():
-		if info.is_player:
-			if isTell:
-				server.tell(info.player, line)
-			else:
-				server.say(line)
-		else:
-			print(line)
+		source.reply(msg)
+
 
 def setMinecraftServerAndStart(server):
 	global client
-	if client == None:
+	if client is None:
 		reloadClient()
 	if not client.isOnline():
 		client.start(server)
 
-def startClient(server, info):
-	printLines(server, info, '正在开启ChatBridge客户端')
-	setMinecraftServerAndStart(server)
+
+def startClient(source: CommandSource):
+	printLines(source, '正在开启ChatBridge客户端')
+	setMinecraftServerAndStart(source.get_server())
 	time.sleep(1)
 
-def stopClient(server, info):
-	printLines(server, info, '正在关闭ChatBridge客户端')
+
+def stopClient(source: CommandSource):
+	printLines(source, '正在关闭ChatBridge客户端')
 	global client
 	if client == None:
 		reloadClient()
@@ -199,9 +183,9 @@ def stopClient(server, info):
 	time.sleep(1)
 
 
-def showClientStatus(server, info):
+def showClientStatus(source: CommandSource):
 	global client
-	printLines(server, info, 'ChatBridge客户端在线情况: ' + str(client.isOnline()))
+	printLines(source, 'ChatBridge客户端在线情况: ' + str(client.isOnline()))
 
 
 def on_user_info(server, info):
@@ -217,33 +201,6 @@ def on_user_info(server, info):
 				client.sendChatMessage(info.player, info.content)
 			sending()
 		return
-	del command[0]
-
-	cmdLen = len(command)
-
-	@thread_spam
-	def processInfo():
-		if cmdLen == 0:
-			printLines(server, info, HelpMessage)
-			return
-
-		if cmdLen == 1 and command[0] == 'status':
-			showClientStatus(server, info)
-		elif cmdLen == 1 and command[0] == 'reload':
-			stopClient(server, info)
-			reloadClient()
-			startClient(server, info)
-			showClientStatus(server, info)
-		elif cmdLen == 1 and command[0] == 'start':
-			startClient(server, info)
-			showClientStatus(server, info)
-		elif cmdLen == 1 and command[0] == 'stop':
-			stopClient(server, info)
-			showClientStatus(server, info)
-		else:
-			printLines(server, info, HelpMessage)
-
-	processInfo()
 
 
 def threadedSendMessage(message: str):
@@ -262,9 +219,46 @@ def on_player_left(server, playername):
 	threadedSendMessage(playername + ' left ' + client.info.name)
 
 
-def on_load(server, old):
+def on_load(server: PluginServerInterface, old):
 	server.register_help_message(Prefix, '跨服聊天控制')
-	setMinecraftServerAndStart(server)
+	updateMode()
+	if not os.path.isfile(ConfigFile):
+		server.logger.info('配置文件缺失，导出默认配置文件')
+		with open(ConfigFile, 'wb') as file:
+			with server.open_bundled_file(os.path.basename(ConfigFile)) as default_config:
+				file.write(default_config.read())
+
+	@thread_spam
+	def _reload(source: CommandSource):
+		stopClient(source)
+		reloadClient()
+		startClient(source)
+		showClientStatus(source)
+
+	@thread_spam
+	def _start(source: CommandSource):
+		startClient(source)
+		showClientStatus(source)
+
+	@thread_spam
+	def _stop(source: CommandSource):
+		stopClient(source)
+		showClientStatus(source)
+
+	server.register_command(
+		Literal(Prefix).
+		runs(lambda src: printLines(src, HelpMessage)).
+		then(Literal('status').runs(showClientStatus)).
+		then(Literal('reload').runs(_reload)).
+		then(Literal('start').runs(_start)).
+		then(Literal('stop').runs(_stop))
+	)
+
+	@thread_spam
+	def run():
+		setMinecraftServerAndStart(server)
+
+	run()
 
 
 # only in MCDR 0.x
@@ -306,7 +300,7 @@ def on_mcdr_stop(server):
 # -------------------------
 
 
-def reloadClient():
+def updateMode():
 	global ConfigFile, LogFile, client, mode
 	if mode is None:
 		if __name__ == '__main__':
@@ -315,6 +309,11 @@ def reloadClient():
 			mode = Mode.MCD
 			ConfigFile = 'config/' + ConfigFile
 			LogFile = 'logs/' + LogFile
+
+
+def reloadClient():
+	global ConfigFile, LogFile, client, mode
+	updateMode()
 	client = ChatClient(ConfigFile, LogFile, mode)
 
 

@@ -5,7 +5,7 @@ from binascii import b2a_hex, a2b_hex
 import json
 import socket
 import threading
-import ChatBridgeLibrary.ChatBridge_utils as utils
+import chatbridge_client.ChatBridge_utils as utils
 import time
 import sys
 import struct

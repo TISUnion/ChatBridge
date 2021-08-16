@@ -1,0 +1,18 @@
+{
+	"id": "chatbridge_client",
+	"name": "ChatBridge Client",
+	"version": "1.1.0",
+	"description": {
+		"en_us": "Boardcast chat between mc servers or even discord server",
+		"zh_cn": "跨服聊天"
+	},
+	"author": "Fallen_Breath",
+	"link": "https://github.com/TISUnion/ChatBridge",
+	"dependencies": {
+		"mcdreforged": ">=2.0.0-beta.10"
+	},
+	"entrypoint": "chatbridge_client.ChatBridge_client",
+	"resources": [
+		"ChatBridge_client.json"
+	]
+}
