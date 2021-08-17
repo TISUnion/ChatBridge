@@ -13,6 +13,7 @@
 	},
 	"entrypoint": "chatbridge_client.ChatBridge_client",
 	"resources": [
-		"ChatBridge_client.json"
+		"ChatBridge_client.json",
+		"LICENSE"
 	]
 }
