@@ -249,8 +249,7 @@ class ChatClientBase(ChatBridgeBase):
 		return super(ChatClientBase, self).isOnline()
 
 	def start(self):
-		self.threadRun = threading.Thread(target=self.run, args=())
-		self.threadRun.setDaemon(True)
+		self.threadRun = threading.Thread(target=self.run, args=(), name=type(self).__name__, daemon=True)
 		self.threadRun.start()
 
 	def stop(self, notifyConnection=True):

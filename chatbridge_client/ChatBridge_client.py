@@ -44,7 +44,7 @@ class ChatClient(lib.ChatClientBase):
 		self.log('Mode = ' + mode)
 		self.log('AESKey = ' + self.AESKey)
 		self.log('Server address = ' + utils.addressToString(self.server_addr))
-		self.minecraftServer = None
+		self.minecraftServer: Optional[ServerInterface] = None
 		self.start_lock = Lock()
 
 	def start(self, minecraftServer=None):
@@ -87,10 +87,7 @@ class ChatClient(lib.ChatClientBase):
 		for msg in messages:
 			self.log(msg)
 			if self.mode == Mode.MCD:
-				self.minecraftServer.execute('tellraw @a {}'.format(json.dumps({
-					'text': msg,
-					'color': 'gray'
-				})))
+				self.minecraftServer.say(RText(msg, RColor.gray))
 
 	def on_recieve_command(self, data):
 		ret = copy.deepcopy(data)

@@ -1,7 +1,7 @@
 {
 	"id": "chatbridge_client",
 	"name": "ChatBridge Client",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": {
 		"en_us": "Boardcast chat between mc servers or even discord server",
 		"zh_cn": "跨服聊天"
