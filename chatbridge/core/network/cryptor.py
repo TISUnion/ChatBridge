@@ -6,7 +6,8 @@ from Crypto.Cipher import AES
 
 class AESCryptor:
 	def __init__(self, key: str, mode=AES.MODE_CBC):
-		self.key = self.__to_16_length_bytes(key)
+		self.key: bytes = self.__to_16_length_bytes(key)
+		self.__key_empty = len(key) == 0
 		self.__hashed_key = hashlib.sha256(self.key).digest()  # a 32-length bytes
 		self.mode = mode
 
@@ -19,9 +20,13 @@ class AESCryptor:
 		return text_bytes + (b'\0' * ((16 - (len(text_bytes) % 16)) % 16))
 
 	def encrypt(self, text: str) -> bytes:
+		if self.__key_empty:
+			return text.encode('utf8')
 		return b2a_hex(self.get_cryptor().encrypt(self.__to_16_length_bytes(text)))
 
 	def decrypt(self, byte_data: bytes) -> str:
+		if self.__key_empty:
+			return byte_data.decode('utf8')
 		return self.get_cryptor().decrypt(a2b_hex(byte_data)).decode('utf8').rstrip('\0')
 
 

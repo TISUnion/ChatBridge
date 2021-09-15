@@ -1,8 +1,0 @@
-{
-	"ws_address": "127.0.0.1",
-	"ws_port": 6700,
-	"access_token": "my_access_token",
-	"react_group_id": 123456789,
-	"client_to_query_stats": "MyClient1",
-	"client_to_query_online": "MyClient2"
-}

@@ -1,0 +1,4 @@
+PACKAGE_NAME = 'chatbridge'
+VERSION_PYPI = '2.0.0-a1'
+
+SERVER_NAME = '#SERVER'
