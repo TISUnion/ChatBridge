@@ -23,4 +23,6 @@ class ClientInfo(Serializable):
 class ServerConfig(BasicConfig):
 	hostname: str = 'localhost'
 	port: int = 30001
-	clients: List[ClientInfo] = []
+	clients: List[ClientInfo] = [
+		ClientInfo(name='MyClientName', password='MyClientPassword')
+	]

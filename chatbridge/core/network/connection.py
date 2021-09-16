@@ -136,15 +136,19 @@ class ChatBridgeConnection(ChatBridgeBase):
 	def _on_chat(self, sender: str, content: ChatContent):
 		pass
 
-	def send_chat(self, message: str):
-		self.communicate_to_all(PacketType.chat, ChatContent(message=message).serialize())
+	def send_chat(self, author: str, message: str):
+		self.communicate_to_all(PacketType.chat, ChatContent(author=author, message=message).serialize())
 
 	# --------------
 	#   Keep Alive
 	# --------------
 
+	@classmethod
+	def _get_keep_alive_thread_name(cls):
+		return 'KeepAlive'
+
 	def _start_keep_alive_thread(self):
-		self._start_thread(self._keep_alive_loop, 'KeepAlive')
+		self._start_thread(self._keep_alive_loop, self._get_keep_alive_thread_name())
 
 	def _keep_alive_loop(self):
 		"""
@@ -153,8 +157,15 @@ class ChatBridgeConnection(ChatBridgeBase):
 		while self._is_connected():
 			self.__keep_alive_received.clear()
 			time_sent = time.time()
-			self.communicate_to_server(PacketType.keep_alive, {'ping_type': 'ping'})
+			try:
+				self.communicate_to_server(PacketType.keep_alive, {'ping_type': 'ping'})
+			except:
+				self.logger.exception('Disconnect due to keep-alive ping error')
+				self.disconnect()
+				continue
 			self.__keep_alive_received.wait(self.KEEP_ALIVE_TIMEOUT)
+			if not self._is_connected():
+				break
 			if self.__keep_alive_received.is_set():
 				self.__ping_array.append(time.time() - time_sent)
 				if len(self.__ping_array) > 5:

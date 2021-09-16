@@ -85,15 +85,15 @@ def on_load(server: PluginServerInterface, old):
 
 
 @new_thread('ChatBridge-messenger')
-def send_chat(message: str):
+def send_chat(message: str, *, author: str = ''):
 	if client is None:
 		create_client().join()
-	client.send_chat(message)
+	client.send_chat(author, message)
 
 
 def on_user_info(server: PluginServerInterface, info: Info):
 	if info.is_from_server:
-		send_chat('<{}> {}'.format(info.player, info.content))
+		send_chat(info.content, author=info.player)
 
 
 def on_player_joined(server: PluginServerInterface, player_name: str, info: Info):

@@ -1,0 +1,15 @@
+{
+    "aes_key": "ThisIstheSecret",
+    "hostname": "localhost",
+    "port": 30001,
+    "clients": [
+        {
+            "name": "MyClientName",
+            "password": "MyClientPassword"
+        },
+        {
+            "name": "MC",
+            "password": "MyClientPassword2"
+        }
+    ]
+}

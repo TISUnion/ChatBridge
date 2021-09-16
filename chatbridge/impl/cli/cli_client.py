@@ -4,7 +4,7 @@ from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.config import ClientInfo, ClientConfig
 from chatbridge.core.network.basic import Address
 from chatbridge.core.network.protocol import ChatContent
-from chatbridge.impl.cli import utils
+from chatbridge.impl import utils
 
 ConfigFile = 'ChatBridge_client.json'
 
@@ -15,7 +15,7 @@ class CLIClient(ChatBridgeClient):
 		self.logger.info('Connected to the server')
 
 	def _on_chat(self, sender: str, content: ChatContent):
-		self.logger.info('New message: [{}] {}'.format(sender, content.message))
+		self.logger.info('New message: [{}] {}'.format(sender, content.formatted_str()))
 
 
 def main():
@@ -31,7 +31,7 @@ def main():
 			text = input()
 			if text == 'stop' or not client.is_online():
 				break
-			client.send_chat(text)
+			client.send_chat('', text)
 	except:
 		traceback.print_exc()
 		client.stop()

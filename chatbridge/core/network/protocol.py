@@ -26,6 +26,13 @@ class ChatBridgePacket(AbstractPacket):
 	content: dict
 
 
+
 class ChatContent(Serializable):
+	author: str
 	message: str
 
+	def formatted_str(self) -> str:
+		if self.author != '':
+			return '<{}> {}'.format(self.author, self.message)
+		else:
+			return self.message

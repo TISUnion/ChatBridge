@@ -119,26 +119,27 @@ class ChatBridgeServer(ChatBridgeBase):
 		super().stop()
 
 	def __handle_connection(self, conn: socket, addr: Address):
+		success = False
 		try:
 			recv_str = net_util.receive_data(conn, self._cryptor, timeout=15)
 			login_packet = LoginPacket.deserialize(json.loads(recv_str))
 		except Exception as e:
 			self.logger.error('Failed reading client\'s login packet: {}'.format(e))
 			return
-		client = self.clients.get(login_packet.name, None)
-		success = False
-		if client is not None:
-			if client.info.password == login_packet.password:
-				success = True
-				self.logger.info('Starting client {}'.format(client.info.name))
-				client.start(conn, addr)
-			else:
-				self.logger.warning('Wrong password during login for client {}: expected {} but received {}'.format(client.info.name, client.info.password, login_packet.password))
 		else:
-			self.logger.warning('Unknown client name during login: {}'.format(login_packet.name))
+			client = self.clients.get(login_packet.name, None)
+			if client is not None:
+				if client.info.password == login_packet.password:
+					success = True
+					self.logger.info('Starting client {}'.format(client.info.name))
+					client.start(conn, addr)
+				else:
+					self.logger.warning('Wrong password during login for client {}: expected {} but received {}'.format(client.info.name, client.info.password, login_packet.password))
+			else:
+				self.logger.warning('Unknown client name during login: {}'.format(login_packet.name))
 		if not success:
-			self.logger.warning('Close connection from {}'.format(addr))
 			conn.close()
+			self.logger.warning('Closed connection from {}'.format(addr.pretty_str()))
 
 	def transfer_packet(self, client: _ClientConnection, packet: ChatBridgePacket):
 		if packet.sender != client.info.name:

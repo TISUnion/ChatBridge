@@ -1,7 +1,7 @@
 from chatbridge.core.config import ServerConfig
 from chatbridge.core.network.basic import Address
 from chatbridge.core.server import ChatBridgeServer
-from chatbridge.impl.cli import utils
+from chatbridge.impl import utils
 
 ConfigFile = 'ChatBridge_server.json'
 
@@ -22,7 +22,7 @@ class CLIServer(ChatBridgeServer):
 				else:
 					self.logger.warning('Client {} not found'.format(target_name))
 			elif text == 'list':
-				self.logger.info('client count: {}'.format(len(self.clients)))
+				self.logger.info('Client count: {}'.format(len(self.clients)))
 				for client in self.clients.values():
 					self.logger.info('- {}: online = {}, ping = {}'.format(client.info.name, client.is_online(), client.get_ping_text()))
 			else:

@@ -1,0 +1,3 @@
+discord.py
+google_trans_new
+

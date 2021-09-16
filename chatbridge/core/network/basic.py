@@ -35,6 +35,10 @@ class ChatBridgeBase:
 		thread.start()
 		return thread
 
+	@classmethod
+	def _get_main_loop_thread_name(cls):
+		return 'MainLoop'
+
 	def start(self):
 		if self._is_running():
 			raise RuntimeError('Already running')
@@ -44,7 +48,7 @@ class ChatBridgeBase:
 			self._main_loop()
 			self._on_stopped()
 
-		self.__thread_run = self._start_thread(func, 'MainLoop')
+		self.__thread_run = self._start_thread(func, self._get_main_loop_thread_name())
 
 	def _main_loop(self):
 		pass

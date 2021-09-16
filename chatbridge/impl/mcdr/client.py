@@ -10,6 +10,8 @@ from chatbridge.impl.mcdr.config import MCDRClientConfig
 
 
 class ChatBridgeMCDRClient(ChatBridgeClient):
+	KEEP_ALIVE_THREAD_NAME = 'ChatBridge-KeepAlive'
+
 	def __init__(self, config: MCDRClientConfig, server: ServerInterface):
 		super().__init__(
 			config.aes_key,
@@ -23,6 +25,14 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 
 	def get_logging_name(self) -> str:
 		return 'ChatBridge@{}'.format(hex((id(self) >> 16) & (id(self) & 0xFFFF))[2:].rjust(4, '0'))
+
+	@classmethod
+	def _get_main_loop_thread_name(cls):
+		return 'ChatBridge-' + super()._get_main_loop_thread_name()
+
+	@classmethod
+	def _get_keep_alive_thread_name(cls):
+		return 'ChatBridge-' + super()._get_keep_alive_thread_name()
 
 	def _on_started(self):
 		super()._on_started()
@@ -39,4 +49,4 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 
 	def _on_chat(self, sender: str, content: ChatContent):
 		if self.server is not None:
-			self.server.say(RText('[{}] {}'.format(sender, content.message), RColor.gray))
+			self.server.say(RText('[{}] {}'.format(sender, content.formatted_str()), RColor.gray))
