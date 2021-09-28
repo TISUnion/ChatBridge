@@ -1,18 +1,19 @@
 import asyncio
 from enum import auto, Enum
 from queue import Queue, Empty
-from typing import NamedTuple, Any
+from typing import NamedTuple, Any, List, Union
 
 import discord
+from discord import Message
 from discord.ext import commands
-from google_trans_new import google_translator
+from discord.ext.commands import Context
 
 from chatbridge.common import logger
-from chatbridge.core.network.protocol import ChatContent
+from chatbridge.core.network.protocol import ChatPayload
 from chatbridge.impl.discord import stored
 from chatbridge.impl.discord.config import DiscordConfig
+from chatbridge.impl.discord.helps import CommandHelpMessageAll, CommandHelpMessage, StatsCommandHelpMessage
 
-translator = google_translator()
 
 class MessageDataType(Enum):
 	CHAT = auto()
@@ -30,7 +31,13 @@ class DiscordBot(commands.Bot):
 	def __init__(self, command_prefix, **options):
 		super().__init__(command_prefix, **options)
 		self.messages = Queue()
-		self.logger = logger.ChatBridgeLogger('Bot')
+		self.logger = logger.ChatBridgeLogger('Bot', file_handler=self.logger.file_handler)
+		try:
+			from google_trans_new import google_translator
+			self.translator = google_translator()
+		except Exception as e:
+			self.logger.error('Failed to import google translator: {} {}'.format(type(e), e))
+			self.translator = None
 
 	@property
 	def config(self) -> DiscordConfig:
@@ -52,15 +59,16 @@ class DiscordBot(commands.Bot):
 					continue
 				data = message_data.data
 				if message_data.type == MessageDataType.CHAT:  # chat message
-					assert isinstance(data, ChatContent)
+					assert isinstance(data, ChatPayload)
 					message: str = data.formatted_str()
-					try:
-						translation = translator.translate(data.message, lang_tgt='en')
-						dest = 'en'
-						if translation.src != dest:
-							message += '   | [{} -> {}] {}'.format(translation.src, dest, translation.text)
-					except:
-						self.logger.exception('Translate fail')
+					if self.translator is not None:
+						try:
+							translation = self.translator.translate(data.message, lang_tgt='en')
+							dest = 'en'
+							if translation.src != dest:
+								message += '   | [{} -> {}] {}'.format(translation.src, dest, translation.text)
+						except:
+							self.logger.exception('Translate fail')
 					await channel_chat.send(self.format_message_text(message))
 				elif message_data.type == MessageDataType.EMBED:  # embed
 					assert isinstance(data, discord.Embed)
@@ -69,7 +77,7 @@ class DiscordBot(commands.Bot):
 				elif message_data.type == MessageDataType.TEXT:
 					await self.get_channel(message_data.channel).send(self.format_message_text(str(data)))
 				else:
-					self.logger.debug('Unkown messageData type {}'.format(message_data.data))
+					self.logger.debug('Unknown messageData type {}'.format(message_data.data))
 		except:
 			self.logger.exception('Error looping discord bot')
 			await self.close()
@@ -78,7 +86,7 @@ class DiscordBot(commands.Bot):
 		self.logger.info(f'Logged in as {self.user}')
 		await self.listeningMessage()
 
-	async def on_message(self, message):
+	async def on_message(self, message: Message):
 		if message.author == self.user:
 			return
 		if message.channel.id in self.config.channels_for_command or message.channel.id == self.config.channel_for_chat:
@@ -97,10 +105,16 @@ class DiscordBot(commands.Bot):
 	def add_message(self, data, channel_id, t):
 		self.messages.put(MessageData(data=data, channel=channel_id, type=t))
 
-	def addResult(self, title, message, name, channel_id):
-		def process_number(text):
+	def add_embed(self, title: str, message_title: str, message: str, channel_id: int):
+		embed = discord.Embed(color=discord.Colour.blue())
+		embed.set_author(name=title, icon_url=self.config.embed_icon_url)
+		embed.add_field(name=message_title, value=message)
+		self.add_message(embed, channel_id, MessageDataType.EMBED)
+
+	def add_stats_result(self, stats_name: str, rank_lines: List[str], total: int, channel_id: int):
+		def process_number(text: Union[str, int]) -> str:
 			ret = x = int(text)
-			for c in ['k', 'M']:
+			for c in ['k', 'M', 'B']:
 				if x < 1000:
 					break
 				x /= 1000
@@ -108,36 +122,29 @@ class DiscordBot(commands.Bot):
 			return str(ret)
 
 		msg = ''
-		lines = self.format_message_text(message).splitlines(keepends=True)
-		message_len = len(lines)
-		if message_len == 0:
-			self.add_message(title, channel_id, MessageDataType.TEXT)
-			return
-		if name == 'Stats Rank':  # the last line is "Total: xxx"
-			message_len -= 1
 		length = 0
-		for i in range(message_len):
-			msg += lines[i]
-			length += len(lines[i])
-			if i == message_len - 1 or length + len(lines[i + 1]) > 1024:
+		for i, line in enumerate(rank_lines):
+			msg += line
+			length += len(line)
+			if i == len(rank_lines) - 1 or length + len(rank_lines[i + 1]) > 1024:
 				embed = discord.Embed(color=discord.Colour.blue())
-				embed.set_author(name=name, icon_url=self.config.embed_icon_url)
-				if name == 'Stats Rank':
-					rank = [line.split(' ')[0] for line in msg.splitlines()]
-					player = [line.split(' ')[1] for line in msg.splitlines()]
-					value = [process_number(line.split(' ')[2]) for line in msg.splitlines()]
-					embed.add_field(name='Stats name', value=title, inline=False)
-					embed.add_field(name='Rank', value='\n'.join(rank), inline=True)
-					embed.add_field(name='Player', value='\n'.join(player), inline=True)
-					embed.add_field(name='Value', value='\n'.join(value), inline=True)
-					if i == message_len - 1:
-						embed.set_footer(text='{} | {}'.format(lines[i + 1], process_number(lines[i + 1].split(' ')[-1])))  # "Total: xxx"
-				else:
-					embed.add_field(name=title, value=msg)
+				embed.set_author(name='Statistic Rank', icon_url=self.config.embed_icon_url)
+				rank = [line.split(' ')[0] for line in msg.splitlines()]
+				player = [line.split(' ')[1] for line in msg.splitlines()]
+				value = [process_number(line.split(' ')[2]) for line in msg.splitlines()]
+				embed.add_field(name='Stats name', value=stats_name, inline=False)
+				embed.add_field(name='Rank', value='\n'.join(rank))
+				embed.add_field(name='Player', value='\n'.join(player))
+				embed.add_field(name='Value', value='\n'.join(value))
+				if i == len(rank_lines) - 1:
+					embed.set_footer(text='Total: {} | {}'.format(total, process_number(total)))
 				self.logger.debug('Adding embed with length {} in message list'.format(len(msg)))
 				self.add_message(embed, channel_id, MessageDataType.EMBED)
 				msg = ''
 				length = 0
+			else:
+				msg += '\n'
+				length += 1
 
 	@staticmethod
 	def format_message_text(msg):
@@ -150,63 +157,39 @@ class DiscordBot(commands.Bot):
 def create_bot():
 	config = stored.config
 	bot = DiscordBot(config.command_prefix)
-	CommandHelpMessage = '''
-`!!help`: Display this message
-`!!stats`: Show stats command help message
-	'''.strip()
 
-	# For chat channel, with full permission
-	CommandHelpMessageAll = CommandHelpMessage + '''
-`!!online`: Show player list in online proxy
-`!!qq <message>`: Send message `<message>` to QQ group
-	'''.strip()
-
+	# noinspection PyShadowingBuiltins
 	@bot.command()
-	async def help(ctx, *args):
-		if ctx.message.channel.id == bot.config.channel_chat:
+	async def help(ctx):
+		if ctx.message.channel.id == bot.config.channel_for_chat:
 			text = CommandHelpMessageAll
 		else:
 			text = CommandHelpMessage
 		await ctx.send(text)
 
 	@bot.command()
-	async def ping(ctx):
+	async def ping(ctx: Context):
 		await ctx.send('pong!!')
 
+	async def send_chatbridge_command(target_client: str, command: str, ctx: Context):
+		if stored.client.is_online():
+			bot.logger.info('Sending command "{}" to client {}'.format(command, target_client))
+			stored.client.send_command(target_client, command, param={'from_channel': ctx.message.channel.id})
+		else:
+			await ctx.send('ChatBridge client is offline')
+
 	@bot.command()
-	async def online(ctx):
+	async def online(ctx: Context):
 		if ctx.message.channel.id == bot.config.channel_for_chat:  # chat channel only
-			command = '!!online'
-			if chatClient.isOnline:
-				client = bot.config.client_to_query_online
-				bot.logger.info('Sending command "{}" to client {}'.format(command, client))
-				chatClient.co(client, command, extra={'from_channel': ctx.message.channel.id})
-			else:
-				await ctx.send('ChatBridge client is offline')
-
-	StatsCommandHelpMessage = '''
-`!!stats <classification> <target> [<-bot>] [<-all>]`
-add `-bot` to list bots (dumb filter tho)
-add `-all` to list every player (spam warning)
-`<classification>`: `killed`, `killed_by`, `dropped`, `picked_up`, `used`, `mined`, `broken`, `crafted`, `custom`
-the `<target>` of `killed`, `killed_by` are entity type
-the `<target>` of `picked_up`, `used`, `mined`, `broken`, `crafted` are block/item id
-for the `<target>` of `custom` or more info, check https://minecraft.gamepedia.com/Statistics
-Example:
-`!!stats used diamond_pickaxe`
-`!!stats custom time_since_rest -bot`
-	'''.strip()
+			await send_chatbridge_command(bot.config.client_to_query_online, '!!online', ctx)
 
 	@bot.command()
-	async def stats(ctx, *args):
+	async def stats(ctx: Context, *args):
+		args = list(args)
+		if len(args) >= 1 and args[0] == 'rank':
+			args.pop(0)
 		command = '!!stats rank ' + ' '.join(args)
 		if len(args) == 0 or len(args) - int(command.find('-bot') != -1) - int(command.find('-all') != -1) != 2:
 			await ctx.send(StatsCommandHelpMessage)
-			return
-		global chatClient
-		if chatClient.isOnline:
-			client = bot.config.clientToQueryStats
-			bot.log('Sending command "{}" to client {}'.format(command, client))
-			chatClient.send_command_query(client, command, extra={'from_channel': ctx.message.channel.id})
 		else:
-			await ctx.send('ChatBridge client is offline')
+			await send_chatbridge_command(bot.config.client_to_query_stats, command, ctx)

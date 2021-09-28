@@ -1,0 +1,16 @@
+{
+    "aes_key": "ThisIstheSecret",
+    "name": "MyClientName",
+    "password": "MyClientPassword",
+    "server_hostname": "127.0.0.1",
+    "server_port": 30001,
+    "bot_token": "your.bot.token.here",
+    "channels_for_command": [
+        123400000000000000,
+        123450000000000000
+    ],
+    "channel_for_chat": 123400000000000000,
+    "command_prefix": "!!",
+    "client_to_query_stats": "MyClient1",
+    "client_to_query_online": "MyClient2"
+}

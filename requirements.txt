@@ -1,2 +1,3 @@
 mcdreforged>=2.1
 pycryptodome
+colorlog

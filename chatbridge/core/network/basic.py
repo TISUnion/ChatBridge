@@ -1,5 +1,5 @@
-from threading import Thread, Event, current_thread
-from typing import Optional, NamedTuple, Callable
+from threading import Thread, current_thread, RLock
+from typing import NamedTuple, Callable, List, Optional
 
 from chatbridge.common.logger import ChatBridgeLogger
 from chatbridge.core.network.cryptor import AESCryptor
@@ -17,11 +17,12 @@ class ChatBridgeBase:
 	def __init__(self, name: str, aes_key: str):
 		super().__init__()
 		self.__name = name
-		self.logger = ChatBridgeLogger(self.get_logging_name())
+		self.logger = ChatBridgeLogger(self.get_logging_name(), file_name=self.get_logging_file_name())
 		self.aes_key = aes_key
 		self._cryptor = AESCryptor(aes_key)
 		self.__thread_run: Optional[Thread] = None
-		self._stopping_flag = False
+		self.__threads: List[Thread] = []
+		self.__threads_lock = RLock()
 
 	def get_name(self) -> str:
 		return self.__name
@@ -29,10 +30,16 @@ class ChatBridgeBase:
 	def get_logging_name(self) -> str:
 		return self.get_name()
 
-	@staticmethod
-	def _start_thread(target: Callable, name: str) -> Thread:
+	def get_logging_file_name(self) -> Optional[str]:
+		"""
+		None for no file handler
+		"""
+		return type(self).__name__
+
+	def _start_thread(self, target: Callable, name: str) -> Thread:
 		thread = Thread(target=target, args=(), name=name, daemon=True)
 		thread.start()
+		self.__threads.append(thread)
 		return thread
 
 	@classmethod
@@ -40,40 +47,40 @@ class ChatBridgeBase:
 		return 'MainLoop'
 
 	def start(self):
-		if self._is_running():
-			raise RuntimeError('Already running')
-
 		def func():
-			self._on_starting()
 			self._main_loop()
-			self._on_stopped()
+			self.__clean_up()
 
-		self.__thread_run = self._start_thread(func, self._get_main_loop_thread_name())
-
-	def _main_loop(self):
-		pass
+		with self.__threads_lock:
+			if self.__thread_run is not None:
+				raise RuntimeError('Already running')
+			self.__thread_run = self._start_thread(func, self._get_main_loop_thread_name())
 
 	def stop(self):
 		"""
 		Stop the client/server, and wait until the MainLoop thread exits
 		Need to be called on a non-MainLoop thread
 		"""
-		if self._is_running():
-			self._stopping_flag = True
-			thread = self.__thread_run
-			if thread is not None and thread is not current_thread():
-				thread.join()
+		self.__join_threads()
 
-	def _is_running(self) -> bool:
-		return self.__thread_run is not None
-
-	def _is_stopping(self) -> bool:
-		return self._stopping_flag
-
-	def _on_starting(self):
+	def _main_loop(self):
 		pass
 
-	def _on_stopped(self):
-		self.logger.removeHandler(self.logger.file_handler)
-		self.logger.file_handler.close()
+	def __clean_up(self):
+		self.logger.close_file()
 		self.__thread_run = None
+
+	def __join_threads(self):
+		self.logger.debug('Joining threads {}'.format(self.__threads))
+		with self.__threads_lock:
+			for thread in self.__threads:
+				if thread is not current_thread():
+					thread.join()
+				else:
+					self.logger.warning('Joining current thread {}'.format(thread))
+			self.__threads.clear()
+			self.__thread_run = None
+		self.logger.debug('Joined threads')
+
+	def _on_external_thread(self):
+		return current_thread() not in self.__threads

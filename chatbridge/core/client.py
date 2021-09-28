@@ -1,67 +1,343 @@
+import json
+import random
 import socket
-from threading import Thread, Event
-from typing import Optional
+import time
+from enum import Enum, auto
+from socket import timeout
+from threading import Event, RLock, Condition
+from threading import Thread
+from typing import Optional, Iterable, Callable, Any, Union, Collection, TypeVar, Type
 
-from chatbridge.core.config import ClientInfo
-from chatbridge.core.network.basic import Address
-from chatbridge.core.network.connection import ChatBridgeConnection
-from chatbridge.core.network.protocol import LoginPacket
+from mcdreforged.utils.serializer import Serializable
+
+from chatbridge.common import constants
+from chatbridge.core.config import ClientInfo, ClientConfig
+from chatbridge.core.network import net_util
+from chatbridge.core.network.basic import ChatBridgeBase, Address
+from chatbridge.core.network.protocol import ChatBridgePacket, PacketType, AbstractPacket, ChatPayload, \
+	KeepAlivePayload, AbstractPayload, CommandPayload
+from chatbridge.core.network.protocol import LoginPacket, LoginResultPacket
 
 
-class ChatBridgeClient(ChatBridgeConnection):
-	def __init__(self, aes_key: str, address: Address, info: ClientInfo, *, name: Optional[str] = None):
-		if name is None:
-			name = info.name
-		super().__init__(name, aes_key, address)
+class ClientStatus(Enum):
+	CONNECTED = auto()  # socket connected, logging in
+	ONLINE = auto()   # logged in, thread started
+	DISCONNECTED = auto()  # socket disconnected, cleaning threads
+	STOPPED = auto()  # stopped
+
+
+class ChatBridgeClient(ChatBridgeBase):
+	KEEP_ALIVE_INTERVAL = 60
+	KEEP_ALIVE_TIMEOUT = 15
+	_PACKET_CALLBACK = Callable[[dict], Any]
+	TIMEOUT = 10
+
+	def __init__(self, aes_key: str, info: ClientInfo, *, server_address: Optional[Address] = None):
+		super().__init__(info.name, aes_key)
+		self._address: Optional[Address] = server_address
+		self._sock: Optional[socket.socket] = None
+		self.__sock_lock = RLock()
+		self.__status = ClientStatus.STOPPED
+		self.__status_lock = RLock()
+		self.__status_condition = Condition()
+		self.__keep_alive_received = Event()
+		self.__ping_array = []
 		self.__info = info
 		self.__thread_keep_alive: Optional[Thread] = None
-		self.__login_done = Event()
 
-	def stop(self):
-		self.logger.info('Stopping client')
-		self._stopping_flag = True
-		self.disconnect()
-		super().stop()
+	@classmethod
+	def create(cls, config: ClientConfig):
+		return cls(config.aes_key, config.client_info, server_address=config.server_address)
+
+	# --------------
+	#     Status
+	# --------------
+
+	def _set_status(self, status: ClientStatus):
+		with self.__status_lock:
+			self.__status = status
+		self.logger.debug('Client status set to {}'.format(status))
+		with self.__status_condition:
+			self.__status_condition.notify_all()
+
+	def set_status_if(self, status: ClientStatus, condition: ClientStatus):
+		with self.__status_lock:
+			if self._in_status(condition):
+				self._set_status(status)
+
+	def _in_status(self, status: Union[ClientStatus, Collection[ClientStatus]]):
+		if isinstance(status, ClientStatus):
+			status = (status,)
+		with self.__status_lock:
+			return self.__status in status
+
+	def _assert_status(self, status: Union[ClientStatus, Collection[ClientStatus]]):
+		if not self._in_status(status):
+			raise AssertionError('Excepted status {} but {} found'.format(set(status), self.__status))
+
+	def _wait_for_status(self, status: Union[ClientStatus, Collection[ClientStatus]]):
+		with self.__status_condition:
+			self.__status_condition.wait_for(lambda: self._in_status(status))
+
+	def _is_connected(self) -> bool:
+		return self._in_status({ClientStatus.CONNECTED, ClientStatus.ONLINE})
 
 	def is_online(self) -> bool:
-		return self._is_connected() and self._is_running()
+		return self._in_status(ClientStatus.ONLINE)
+
+	def _is_stopping_or_stopped(self) -> bool:
+		return self._in_status({ClientStatus.DISCONNECTED, ClientStatus.STOPPED})
+
+	def _is_stopped(self) -> bool:
+		return self._in_status(ClientStatus.STOPPED)
+
+	# --------------
+	#   Connection
+	# --------------
+
+	def set_address(self, addr: Address):
+		self._address = addr
+
+	@property
+	def ping(self) -> float:
+		"""
+		ping in second
+		"""
+		return -1 if len(self.__ping_array) == 0 else sum(self.__ping_array) / len(self.__ping_array)
+
+	def get_ping_text(self) -> str:
+		if self.ping >= 0:
+			return '{}ms'.format(round(self.ping * 1000, 2))
+		else:
+			return 'N/A'
+
+	def __connect(self):
+		"""
+		status: STOPPED -> CONNECTED
+		"""
+		self._assert_status(ClientStatus.STOPPED)
+		assert self._address is not None
+		self.logger.info('Connecting to {}'.format(self._address.pretty_str()))
+		sock = socket.socket()
+		sock.connect(self._address)
+		with self.__sock_lock:
+			self._sock = sock
+		self._set_status(ClientStatus.CONNECTED)
+
+	def __disconnect(self):
+		"""
+		status: STOPPED -> STOPPED, other -> DISCONNECTED
+		"""
+		if self._is_stopped():
+			return
+		with self.__sock_lock:
+			self._set_status(ClientStatus.DISCONNECTED)  # set the status first so no exception errors get spammed
+			if self._sock is not None:
+				try:
+					self._sock.close()
+				except:
+					pass
+			self._sock = None
+
+	def _tick_connection(self):
+		try:
+			# self.logger.debug('Waiting for data received')
+			packet = self._receive_packet(ChatBridgePacket)
+		except timeout:
+			# self.logger.debug('Timeout, ignore')
+			pass
+		else:
+			self.logger.debug('Received packet with type {}: {}'.format(packet.type, packet.payload))
+			try:
+				self._on_packet(packet)
+			except:
+				self.logger.exception('Fail to process packet {}'.format(packet))
+
+	# --------------
+	#   Main Logic
+	# --------------
 
 	def start(self):
-		"""
-		Start the client and related threads, and wait until the login part ends
-		"""
-		super().start()
-		self.__login_done.wait()
+		assert self._on_external_thread()
+		if not self._is_stopped():
+			self.logger.debug('Client is running, cannot start again')
+		else:
+			self.logger.debug('Starting client')
+			super().start()
+			self._wait_for_status({ClientStatus.ONLINE, ClientStatus.DISCONNECTED})  # wait for login result
 
-	def _login(self):
-		self.connect()
-		self.send_packet(LoginPacket(name=self.__info.name, password=self.__info.password))
+	def stop(self):
+		assert self._on_external_thread()
+		if self._is_stopped():
+			self.logger.debug('Client is stopped, cannot stop again')
+		else:
+			self.logger.debug('Stopping client')
+			self.__disconnect()
+			super().stop()
+
+	def restart(self):
+		self.logger.info('Restarting client')
+		self.stop()
+		self.start()
+
+	def _connect_and_login(self):
+		self.__connect()
+		self._send_packet(LoginPacket(name=self.__info.name, password=self.__info.password))
+		self._receive_packet(LoginResultPacket)
 
 	def _main_loop(self):
 		try:
-			self._login()
+			self._connect_and_login()
+			self._set_status(ClientStatus.ONLINE)
 		except:
 			self.logger.exception('Failed to connect to the server and login')
-		finally:
-			self.__login_done.set()
-		if not self._is_connected():
-			return
-		self._on_started()
-		try:
-			while self._is_connected() and not self._is_stopping():
+			self.__disconnect()
+		else:
+			self._on_started()
+			while self.is_online():
 				try:
 					self._tick_connection()
+				except (ConnectionResetError, net_util.EmptyContent) as e:
+					self.logger.warning('Connection closed: {}'.format(e))
+					break
 				except socket.error:
-					if not self._is_stopping():
+					if not self._is_stopping_or_stopped():
 						self.logger.exception('Failed to receive data, stopping client now')
 					break
 				except:
-					if not self._is_stopping():
-						if self._is_connected():  # might already been handled and disconnected
-							self.logger.exception('Error ticking client connection')
+					if not self._is_stopping_or_stopped():  # might already been handled and disconnected
+						self.logger.exception('Error ticking client connection')
 					break
+			self._on_stopped()
 		finally:
-			self.disconnect()
+			self._set_status(ClientStatus.STOPPED)
 
 	def _on_started(self):
 		self._start_keep_alive_thread()
+
+	def _on_stopped(self):
+		if self._is_connected():
+			self.__disconnect()
+
+	# ----------------
+	#   Packet Logic
+	# ----------------
+
+	def _send_packet(self, packet: AbstractPacket):
+		if self._is_connected():
+			net_util.send_data(self._sock, self._cryptor, packet)
+		else:
+			self.logger.warning('Trying to send a packet when not connected')
+
+	T = TypeVar('T')
+
+	def _receive_packet(self, packet_type: Type[T]) -> T:
+		data_string = net_util.receive_data(self._sock, self._cryptor, timeout=self.TIMEOUT)
+		try:
+			js_dict = json.loads(data_string)
+		except ValueError:
+			self.logger.exception('Fail to decode received string: {}'.format(data_string))
+			raise
+		if packet_type is dict:
+			return js_dict
+		try:
+			packet = packet_type.deserialize(js_dict)
+		except Exception:
+			self.logger.exception('Fail to deserialize received json to {}: {}'.format(packet_type, js_dict))
+			raise
+		return packet
+
+	def __build_and_send_packet(self, type_: str, receiver: Iterable[str], payload: AbstractPayload, *, is_broadcast: bool):
+		self._send_packet(ChatBridgePacket(
+			sender=self.get_name(),
+			receivers=list(receiver),
+			broadcast=is_broadcast,
+			type=type_,
+			payload=payload.serialize()
+		))
+
+	def send_to(self, type_: str, clients: Union[str, Iterable[str]], payload: AbstractPayload):
+		if isinstance(clients, str):
+			clients = (clients,)
+		return self.__build_and_send_packet(type_, clients, payload, is_broadcast=False)
+
+	def send_to_all(self, type_: str, payload: AbstractPayload):
+		self.__build_and_send_packet(type_, [], payload, is_broadcast=True)
+
+	def _on_packet(self, packet: ChatBridgePacket):
+		if packet.type == PacketType.keep_alive:
+			self._on_keep_alive(packet.sender, KeepAlivePayload.deserialize(packet.payload))
+		if packet.type == PacketType.chat:
+			self.on_chat(packet.sender, ChatPayload.deserialize(packet.payload))
+		if packet.type == PacketType.command:
+			self.on_command(packet.sender, CommandPayload.deserialize(packet.payload))
+
+	def _on_keep_alive(self, sender: str, payload: KeepAlivePayload):
+		if payload.is_ping():
+			self.send_to(PacketType.keep_alive, sender, KeepAlivePayload.pong())
+		elif payload.is_pong():
+			self.__keep_alive_received.set()
+		else:
+			self.logger.warning('Unknown keep alive type: {}'.format(payload.ping_type))
+
+	def on_chat(self, sender: str, payload: ChatPayload):
+		pass
+
+	def on_command(self, sender: str, payload: CommandPayload):
+		pass
+
+	def _send_keep_alive_ping(self):
+		self.send_to(PacketType.keep_alive, self._keep_alive_target(), KeepAlivePayload.ping())
+
+	def send_chat(self, author: str, message: str):
+		self.send_to_all(PacketType.chat, ChatPayload(author=author, message=message))
+
+	def send_command(self, target: str, command: str, param: Optional[Union[Serializable, dict]] = None):
+		self.send_to(PacketType.command, target, CommandPayload.ask(command, param))
+
+	def reply_command(self, target: str, asker_payload: 'CommandPayload', result: Union[Serializable, dict]):
+		self.send_to(PacketType.command, target, CommandPayload.answer(asker_payload, result))
+
+	# --------------
+	#   Keep Alive
+	# --------------
+
+	@classmethod
+	def _get_keep_alive_thread_name(cls):
+		return 'KeepAlive'
+
+	def _start_keep_alive_thread(self):
+		self._start_thread(self._keep_alive_loop, self._get_keep_alive_thread_name())
+
+	def _keep_alive_target(self) -> str:
+		return constants.SERVER_NAME
+
+	def _keep_alive_loop(self):
+		"""
+		Except to have the same life-span as the connection
+		"""
+		while self.is_online():
+			time.sleep(random.random())
+			self.__keep_alive_received.clear()
+			time_sent = time.time()
+			try:
+				self._send_keep_alive_ping()
+			except:
+				self.logger.exception('Disconnect due to keep-alive ping error')
+				self.__disconnect()
+				continue
+			self.__keep_alive_received.wait(self.KEEP_ALIVE_TIMEOUT)
+			if not self.is_online():
+				break
+			if self.__keep_alive_received.is_set():
+				self.__ping_array.append(time.time() - time_sent)
+				if len(self.__ping_array) > 5:
+					self.__ping_array.pop(0)
+				self.logger.debug('Keep-alive responded, ping = {}ms'.format(round(self.ping * 1000, 2)))
+			else:
+				self.logger.warning('Disconnect due to keep-alive ping timeout')
+				self.__disconnect()
+			for i in range(self.KEEP_ALIVE_INTERVAL * 10):
+				time.sleep(0.1)
+				if not self.is_online():
+					break

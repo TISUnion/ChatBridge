@@ -1,5 +1,5 @@
 import os
-from threading import Lock
+from threading import Event, Lock
 from typing import Optional
 
 from mcdreforged.api.all import *
@@ -11,21 +11,8 @@ from chatbridge.impl.mcdr.config import MCDRClientConfig
 Prefixes = ('!!ChatBridge', '!!cb')
 client: Optional[ChatBridgeMCDRClient] = None
 config: Optional[MCDRClientConfig] = None
-server_inst: PluginServerInterface
-create_lock = Lock()
-
-
-@new_thread('ChatBridge-create')
-def create_client():
-	if create_lock.acquire(blocking=False):
-		try:
-			if config is not None:
-				global client
-				server_inst.logger.info('Creating ChatBridgeMCDRClient')
-				client = ChatBridgeMCDRClient(config, server_inst)
-				client.start()
-		finally:
-			create_lock.release()
+cb_stop_done = Event()
+cb_lock = Lock()
 
 
 def display_help(source: CommandSource):
@@ -43,21 +30,48 @@ def display_status(source: CommandSource):
 	if config is None:
 		source.reply('跨服聊天未初始化，请检查服务端后台输出')
 	else:
-		source.reply('跨服聊天客户端在线情况: {}'.format(client is not None and client.is_online()))
+		source.reply('跨服聊天客户端在线情况: {}'.format(client.is_online()))
 
 
+def get_started_client() -> ChatBridgeMCDRClient:
+	if not client.is_online():
+		client.start()
+	return client
+
+
+@new_thread('ChatBridge-restart')
 def restart_client(source: CommandSource):
-	global client
-	if config is None:
-		source.reply('跨服聊天未初始化，请检查服务端后台输出')
-	else:
-		if client is not None:
+	with cb_lock:
+		client.restart()
+	source.reply('跨服聊天已重启')
+
+
+@new_thread('ChatBridge-start')
+def start(server: ServerInterface, old_module):
+	with cb_lock:
+		if isinstance(getattr(old_module, 'cb_stop_done', None), type(cb_stop_done)):
+			stop_event: Event = old_module.cb_stop_done
+			if not stop_event.wait(30):
+				server.logger.warning('Previous chatbridge instance does not stop for 30s')
+		client.start()
+
+
+@new_thread('ChatBridge-unload')
+def on_unload(server: PluginServerInterface):
+	with cb_lock:
+		if client is not None and client.is_online():
 			client.stop()
-		create_client()
+	cb_stop_done.set()
+
+
+@new_thread('ChatBridge-messenger')
+def send_chat(message: str, *, author: str = ''):
+	with cb_lock:
+		get_started_client().send_chat(author, message)
 
 
 def on_load(server: PluginServerInterface, old):
-	global client, config, server_inst
+	global client, config
 	if not os.path.isfile(os.path.join('config', server.get_self_metadata().id, 'config.json')):
 		server.logger.exception('Config file not found! ChatBridge will not work properly')
 		server.logger.error('Fill the default configure file with correct values and reload the plugin')
@@ -67,12 +81,11 @@ def on_load(server: PluginServerInterface, old):
 	try:
 		config = server.load_config_simple(target_class=MCDRClientConfig)
 	except:
-		server.logger.exception('Failed to read the config file! ChatBridge will not work properly')
+		server.logger.exception('Failed to read the config file! ChatBridge might not work properly')
 		server.logger.error('Fix the configure file and then reload the plugin')
-		return
 	if config.debug:
 		logger.DEBUG_SWITCH = True
-	server_inst = server
+	client = ChatBridgeMCDRClient(config, server)
 	for prefix in Prefixes:
 		server.register_help_message(prefix, '跨服聊天控制')
 	server.register_command(
@@ -81,14 +94,7 @@ def on_load(server: PluginServerInterface, old):
 		then(Literal('status').runs(display_status)).
 		then(Literal('restart').runs(restart_client))
 	)
-	create_client()
-
-
-@new_thread('ChatBridge-messenger')
-def send_chat(message: str, *, author: str = ''):
-	if client is None:
-		create_client().join()
-	client.send_chat(author, message)
+	start(server, old)
 
 
 def on_user_info(server: PluginServerInterface, info: Info):
@@ -111,8 +117,3 @@ def on_server_startup(server: PluginServerInterface):
 def on_server_stop(server: PluginServerInterface, return_code: int):
 	send_chat('Server stopped')
 
-
-@new_thread('ChatBridge-stop')
-def on_unload(server: PluginServerInterface):
-	if client is not None:
-		client.stop()

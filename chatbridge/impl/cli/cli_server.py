@@ -1,5 +1,6 @@
 from chatbridge.core.config import ServerConfig
 from chatbridge.core.network.basic import Address
+from chatbridge.core.network.protocol import ChatPayload
 from chatbridge.core.server import ChatBridgeServer
 from chatbridge.impl import utils
 
@@ -7,8 +8,11 @@ ConfigFile = 'ChatBridge_server.json'
 
 
 class CLIServer(ChatBridgeServer):
+	def on_chat(self, sender: str, content: ChatPayload):
+		self.logger.info('Chat from {}: {}'.format(sender, content.formatted_str()))
+
 	def console_loop(self):
-		while self._is_running():
+		while self.is_running():
 			text = input()
 			self.logger.info('Processing user input "{}"'.format(text))
 			if text == 'stop':

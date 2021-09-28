@@ -1,12 +1,11 @@
-from mcdreforged.api.utils.serializer import Serializable as mcdr_Serializable
+from mcdreforged.api.utils.serializer import Serializable
 
 
-class Serializable(mcdr_Serializable):
+class NoMissingSerializable(Serializable):
 	@classmethod
 	def deserialize(cls, data: dict, **kwargs):
-		if 'error_at_missing' not in kwargs:
-			kwargs['error_at_missing'] = True
-		return super().deserialize(data)
+		kwargs.setdefault('error_at_missing', True)
+		return super().deserialize(data, **kwargs)
 
 	@classmethod
 	def get_default(cls):

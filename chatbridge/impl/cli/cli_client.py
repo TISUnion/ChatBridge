@@ -3,7 +3,7 @@ import traceback
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.config import ClientInfo, ClientConfig
 from chatbridge.core.network.basic import Address
-from chatbridge.core.network.protocol import ChatContent
+from chatbridge.core.network.protocol import ChatPayload
 from chatbridge.impl import utils
 
 ConfigFile = 'ChatBridge_client.json'
@@ -14,8 +14,8 @@ class CLIClient(ChatBridgeClient):
 		super()._on_started()
 		self.logger.info('Connected to the server')
 
-	def _on_chat(self, sender: str, content: ChatContent):
-		self.logger.info('New message: [{}] {}'.format(sender, content.formatted_str()))
+	def on_chat(self, sender: str, payload: ChatPayload):
+		self.logger.info('New message: [{}] {}'.format(sender, payload.formatted_str()))
 
 
 def main():
@@ -24,7 +24,7 @@ def main():
 	print('AES Key = {}'.format(config.aes_key))
 	print('Client Info: name = {}, password = {}'.format(config.name, config.password))
 	print('Server address = {}'.format(server_address.pretty_str()))
-	client = CLIClient(config.aes_key, server_address, ClientInfo(name=config.name, password=config.password))
+	client = CLIClient(config.aes_key, ClientInfo(name=config.name, password=config.password), server_address=server_address)
 	client.start()
 	try:
 		while client.is_online():

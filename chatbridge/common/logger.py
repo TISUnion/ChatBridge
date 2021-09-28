@@ -1,10 +1,10 @@
-import functools
 import os
 import sys
 import time
 import zipfile
 from logging import FileHandler, Formatter, Logger, DEBUG, StreamHandler, INFO
 from threading import RLock
+from typing import Optional
 
 from colorlog import ColoredFormatter
 
@@ -64,7 +64,7 @@ class ChatBridgeLogger(Logger):
 		}
 	}
 
-	def __init__(self, name: str):
+	def __init__(self, name: str, *, file_name: Optional[str] = None, file_handler: Optional[FileHandler] = None):
 		super().__init__(name)
 		self.console_handler = SyncStdoutStreamHandler()
 		self.console_handler.setFormatter(ColoredFormatter(
@@ -73,7 +73,17 @@ class ChatBridgeLogger(Logger):
 			secondary_log_colors=self.SECONDARY_LOG_COLORS,
 			datefmt='%H:%M:%S'
 		))
-		self.file_handler = _create_file_handler(self.name)
 		self.addHandler(self.console_handler)
-		self.addHandler(self.file_handler)
+		if file_name is not None and file_handler is None:
+			self.file_handler = _create_file_handler(file_name)
+		else:
+			self.file_handler = file_handler
+		if self.file_handler is not None:
+			self.addHandler(self.file_handler)
 		self.setLevel(DEBUG if DEBUG_SWITCH else INFO)
+
+	def close_file(self):
+		if self.file_handler is not None:
+			self.removeHandler(self.file_handler)
+			self.file_handler.close()
+			self.file_handler = None

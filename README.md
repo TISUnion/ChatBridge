@@ -149,11 +149,9 @@ MyFolder
 
 `!!online` will send command to `MyClient2` to use rcon to get `glist` command reply in bungeecord server
 
-### Client as a CooqHttp client
+### Client as a CoolqHttp client
 
 **python3 only**
-
-~~Needs [coolq-http-api](https://github.com/richardchien/coolq-http-api) server running~~ (:ghost: it's down)
 
 Needs any CoolQ Http protocol provider to work. e.g. [go-cqhttp](https://github.com/Mrs4s/go-cqhttp)
 
