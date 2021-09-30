@@ -1,6 +1,6 @@
 import json
 import socket
-from threading import Thread
+from threading import Thread, Event
 from typing import Dict, Optional
 
 from chatbridge.common import constants
@@ -73,6 +73,7 @@ class ChatBridgeServer(ChatBridgeBase):
 		self.__sock: Optional[socket.socket] = None
 		self.__thread_run: Optional[Thread] = None
 		self.__stopping_flag = False
+		self.__binding_done = Event()
 
 	@classmethod
 	def _get_main_loop_thread_name(cls):
@@ -90,10 +91,13 @@ class ChatBridgeServer(ChatBridgeBase):
 			self.__sock.bind(self.server_address)
 		except:
 			self.logger.exception('Failed to bind {}'.format(self.server_address))
+			self.__stopping_flag = True
 			return
-		self.__sock.listen(5)
-		self.logger.info('Server started at {}'.format(self.server_address))
+		finally:
+			self.__binding_done.set()
 		try:
+			self.__sock.listen(5)
+			self.logger.info('Server started at {}'.format(self.server_address))
 			counter = 0
 			while self.is_running():
 				try:
@@ -109,9 +113,20 @@ class ChatBridgeServer(ChatBridgeBase):
 			self.__stop()
 		self.logger.info('bye')
 
+	def start(self):
+		"""
+		Start and wait until port binding done
+		"""
+		self.__binding_done.clear()
+		super().start()
+		self.__binding_done.wait()
+
 	def __stop(self):
 		self.__stopping_flag = True
-		self.__sock.close()
+		try:
+			self.__sock.close()
+		except:
+			pass
 
 	def stop(self):
 		self.__stop()

@@ -1,0 +1,13 @@
+chatbridge:
+  help_message: |
+    ------MCDR ChatBridge plugin v{version}------
+    A chatbridge client as MCDR plugin
+    Possible command prefixes: {prefixes}
+    §7{prefix}§r Show help
+    §7{prefix} status§r Show chatbridge client status
+    §7{prefix} restart§r Restart chatbridge client
+  help_summary: 'Chatbridge control'
+  status:
+    not_init: 'Chatbridge is not initialized, please check the server console output'
+    info: 'Chatbridge online state: {}'
+  restarted: 'Chatbridge restarted'

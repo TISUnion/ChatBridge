@@ -4,7 +4,7 @@ import socket
 import time
 from enum import Enum, auto
 from socket import timeout
-from threading import Event, RLock, Condition
+from threading import Event, RLock
 from threading import Thread
 from typing import Optional, Iterable, Callable, Any, Union, Collection, TypeVar, Type
 

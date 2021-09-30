@@ -1,35 +1,42 @@
 import sys
-from typing import Dict, Any, Callable
 
 from chatbridge.common import constants
-from chatbridge.impl.cli import cli_client, cli_server
-from chatbridge.impl.cqhttp import entry as cqhttp
-from chatbridge.impl.discord import entry as discord
-from chatbridge.impl.online import entry as online
 
 __all__ = [
-	'add_entry', 'main'
+	'main'
 ]
 
 
-__ENTRY_MAPPING: Dict[str, Callable[[], Any]] = {
-	'client': cli_client.main,
-	'server': cli_server.main,
-	'discord_bot': discord.main,
-	'cqhttp_bot': cqhttp.main,
-	'online_command': online.main,
-}
+def client():
+	from chatbridge.impl.cli import cli_client
+	cli_client.main()
 
 
-def add_entry(arg: str, entry: Callable[[], Any]):
-	__ENTRY_MAPPING[arg] = entry
+def server():
+	from chatbridge.impl.cli import cli_server
+	cli_server.main()
+
+
+def discord_bot():
+	from chatbridge.impl.discord import entry
+	entry.main()
+
+
+def cqhttp_bot():
+	from chatbridge.impl.cqhttp import entry
+	entry.main()
+
+
+def online_command():
+	from chatbridge.impl.online import entry
+	entry.main()
 
 
 def main():
 	if len(sys.argv) == 2:
 		arg = sys.argv[1]
-		entry = __ENTRY_MAPPING.get(arg)
-		if entry is not None:
+		entry = globals().get(arg)
+		if entry is not None and entry not in __all__ and callable(entry):
 			entry()
 		else:
 			print('Unknown argument {}'.format(arg))

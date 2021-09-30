@@ -7,7 +7,6 @@ from typing import Type, TypeVar
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.config import BasicConfig
 
-
 T = TypeVar('T', BasicConfig, BasicConfig)
 
 

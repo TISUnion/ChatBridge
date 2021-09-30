@@ -11,9 +11,9 @@
     ],
     "link": "https://github.com/TISUnion/ChatBridge",
     "dependencies": {
-        "mcdreforged": ">=2.1.0"
+        "mcdreforged": ">=2.2.0-"
     },
-    "archive_name": "ChatBridge-v{version}",
+    "archive_name": "ChatBridge-v{version}.pyz",
     "entrypoint": "chatbridge.impl.mcdr.mcdr_entry",
     "resources": [
         "lang",

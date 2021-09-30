@@ -1,8 +1,5 @@
-import traceback
-
 from chatbridge.core.client import ChatBridgeClient
-from chatbridge.core.config import ClientInfo, ClientConfig
-from chatbridge.core.network.basic import Address
+from chatbridge.core.config import ClientConfig
 from chatbridge.core.network.protocol import ChatPayload
 from chatbridge.impl import utils
 

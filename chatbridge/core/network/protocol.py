@@ -6,6 +6,7 @@ from mcdreforged.utils.serializer import Serializable
 
 from chatbridge.common.serializer import NoMissingFieldSerializable
 
+
 # ==============
 #     Packet
 # ==============

@@ -1,0 +1,13 @@
+chatbridge:
+  help_message: |
+    ------MCDR ChatBridge插件 v{version}------
+    一个跨服聊天客户端插件
+    可用的指令前缀: {prefixes}
+    §7{prefix}§r 显示帮助信息
+    §7{prefix} status§r 查看跨服聊天状态
+    §7{prefix} restart§r 重启跨服聊天
+  help_summary: '跨服聊天控制'
+  status:
+    not_init: '跨服聊天未初始化，请检查服务端后台输出'
+    info: '跨服聊天客户端在线情况: {}'
+  restarted: '跨服聊天已重启'
