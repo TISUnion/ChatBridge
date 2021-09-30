@@ -30,18 +30,16 @@ class CLIServer(ChatBridgeServer):
 				for client in self.clients.values():
 					self.logger.info('- {}: online = {}, ping = {}'.format(client.info.name, client.is_online(), client.get_ping_text()))
 			else:
-				print('''
-Type "stop" to stop the server
-Type "stop client_name" to stop a client
-Type "list" to show the client list
-'''.strip())
+				self.logger.info('stop": stop the server')
+				self.logger.info('stop <client_name>": stop a client')
+				self.logger.info('list": show the client list')
 
 
 def main():
-	config: ServerConfig = utils.load_config(ConfigFile, ServerConfig)
+	config = utils.load_config(ConfigFile, ServerConfig)
 	address = Address(config.hostname, config.port)
 	print('AES Key = {}'.format(config.aes_key))
-	print('Server address = {}'.format(address.pretty_str()))
+	print('Server address = {}'.format(address))
 	server = CLIServer(config.aes_key, address)
 	for i, client_info in enumerate(config.clients):
 		print('- Client #{}: name = {}, password = {}'.format(i + 1, client_info.name, client_info.password))

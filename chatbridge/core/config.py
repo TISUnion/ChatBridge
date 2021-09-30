@@ -3,7 +3,7 @@ from typing import List
 
 from mcdreforged.utils.serializer import Serializable
 
-from chatbridge.common.serializer import NoMissingSerializable
+from chatbridge.common.serializer import NoMissingFieldSerializable
 from chatbridge.core.network.basic import Address
 
 
@@ -11,7 +11,7 @@ class BasicConfig(Serializable, ABC):
 	aes_key: str = 'ThisIstheSecret'
 
 
-class ClientInfo(NoMissingSerializable):
+class ClientInfo(NoMissingFieldSerializable):
 	name: str
 	password: str
 

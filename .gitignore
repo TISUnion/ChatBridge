@@ -6,6 +6,7 @@ test.py
 *.pyc
 /__pycache__
 StatsHelper.py
-stats_helper
+/stats_helper
+/more_apis
 *.zip
 *.mcdr

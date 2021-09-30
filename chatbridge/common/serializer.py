@@ -1,7 +1,7 @@
 from mcdreforged.api.utils.serializer import Serializable
 
 
-class NoMissingSerializable(Serializable):
+class NoMissingFieldSerializable(Serializable):
 	@classmethod
 	def deserialize(cls, data: dict, **kwargs):
 		kwargs.setdefault('error_at_missing', True)

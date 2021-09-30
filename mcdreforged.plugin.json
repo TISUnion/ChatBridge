@@ -14,7 +14,7 @@
         "mcdreforged": ">=2.1.0"
     },
     "archive_name": "ChatBridge-v{version}",
-    "entrypoint": "chatbridge.impl.mcdr.entry",
+    "entrypoint": "chatbridge.impl.mcdr.mcdr_entry",
     "resources": [
         "lang",
         "LICENSE",

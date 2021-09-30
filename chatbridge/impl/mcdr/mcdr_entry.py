@@ -67,7 +67,7 @@ def on_unload(server: PluginServerInterface):
 @new_thread('ChatBridge-messenger')
 def send_chat(message: str, *, author: str = ''):
 	with cb_lock:
-		get_started_client().send_chat(author, message)
+		get_started_client().send_chat(message, author)
 
 
 def on_load(server: PluginServerInterface, old):
@@ -117,3 +117,7 @@ def on_server_startup(server: PluginServerInterface):
 def on_server_stop(server: PluginServerInterface, return_code: int):
 	send_chat('Server stopped')
 
+
+@event_listener('more_apis.death_message')
+def on_player_death(server: PluginServerInterface, message: str):
+	send_chat(message)

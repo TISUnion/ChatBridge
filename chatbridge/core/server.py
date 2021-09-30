@@ -60,8 +60,8 @@ class _ClientConnection(ChatBridgeClient):
 	def restart_connection(self, conn: socket.socket, addr: Address):
 		if not self._is_stopped():
 			self.stop()
-		self.set_address(addr)
-		self._sock = conn
+		self.set_server_address(addr)
+		self._set_socket(conn)
 		self.start()
 
 
@@ -92,23 +92,29 @@ class ChatBridgeServer(ChatBridgeBase):
 			self.logger.exception('Failed to bind {}'.format(self.server_address))
 			return
 		self.__sock.listen(5)
-		self.logger.info('Server started at {}'.format(self.server_address.pretty_str()))
+		self.logger.info('Server started at {}'.format(self.server_address))
 		try:
+			counter = 0
 			while self.is_running():
 				try:
 					conn, addr = self.__sock.accept()
 					address = Address(*addr)
-					self.logger.info('New connection from {}'.format(address.pretty_str()))
-					self.__handle_connection(conn, address)
+					counter += 1
+					self.logger.info('New connection #{} from {}'.format(counter, address))
+					Thread(name='Connection#{}'.format(counter), target=self.__handle_connection, args=(conn, address), daemon=True).start()
 				except:
 					if not self.__stopping_flag:
 						self.logger.exception('Error ticking server')
 		finally:
-			self.stop()
+			self.__stop()
+		self.logger.info('bye')
 
-	def stop(self):
+	def __stop(self):
 		self.__stopping_flag = True
 		self.__sock.close()
+
+	def stop(self):
+		self.__stop()
 		super().stop()
 
 	def __handle_connection(self, conn: socket, addr: Address):
@@ -125,7 +131,7 @@ class ChatBridgeServer(ChatBridgeBase):
 			if client is not None:
 				if client.info.password == login_packet.password:
 					success = True
-					self.logger.info('Identification of {} confirmed: {}'.format(addr.pretty_str(), client.info.name))
+					self.logger.info('Identification of {} confirmed: {}'.format(addr, client.info.name))
 					client.restart_connection(conn, addr)
 				else:
 					self.logger.warning('Wrong password during login for client {}: expected {} but received {}'.format(client.info.name, client.info.password, login_packet.password))
@@ -133,7 +139,7 @@ class ChatBridgeServer(ChatBridgeBase):
 				self.logger.warning('Unknown client name during login: {}'.format(login_packet.name))
 		if not success:
 			conn.close()
-			self.logger.warning('Closed connection from {}'.format(addr.pretty_str()))
+			self.logger.warning('Closed connection from {}'.format(addr))
 
 	def log_packet(self, packet: AbstractPacket, *, to_client: bool = None):
 		if isinstance(packet, ChatBridgePacket):

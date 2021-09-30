@@ -20,6 +20,7 @@ from chatbridge.core.network.protocol import LoginPacket, LoginResultPacket
 
 
 class ClientStatus(Enum):
+	CONNECTING = auto()  # socket connecting
 	CONNECTED = auto()  # socket connected, logging in
 	ONLINE = auto()   # logged in, thread started
 	DISCONNECTED = auto()  # socket disconnected, cleaning threads
@@ -34,12 +35,13 @@ class ChatBridgeClient(ChatBridgeBase):
 
 	def __init__(self, aes_key: str, info: ClientInfo, *, server_address: Optional[Address] = None):
 		super().__init__(info.name, aes_key)
-		self._address: Optional[Address] = server_address
-		self._sock: Optional[socket.socket] = None
+		self.__server_address: Optional[Address] = server_address
+		self.__sock: Optional[socket.socket] = None
 		self.__sock_lock = RLock()
+		self.__start_stop_lock = RLock()
 		self.__status = ClientStatus.STOPPED
 		self.__status_lock = RLock()
-		self.__status_condition = Condition()
+		self.__connection_done = Event()
 		self.__keep_alive_received = Event()
 		self.__ping_array = []
 		self.__info = info
@@ -57,13 +59,6 @@ class ChatBridgeClient(ChatBridgeBase):
 		with self.__status_lock:
 			self.__status = status
 		self.logger.debug('Client status set to {}'.format(status))
-		with self.__status_condition:
-			self.__status_condition.notify_all()
-
-	def set_status_if(self, status: ClientStatus, condition: ClientStatus):
-		with self.__status_lock:
-			if self._in_status(condition):
-				self._set_status(status)
 
 	def _in_status(self, status: Union[ClientStatus, Collection[ClientStatus]]):
 		if isinstance(status, ClientStatus):
@@ -74,10 +69,6 @@ class ChatBridgeClient(ChatBridgeBase):
 	def _assert_status(self, status: Union[ClientStatus, Collection[ClientStatus]]):
 		if not self._in_status(status):
 			raise AssertionError('Excepted status {} but {} found'.format(set(status), self.__status))
-
-	def _wait_for_status(self, status: Union[ClientStatus, Collection[ClientStatus]]):
-		with self.__status_condition:
-			self.__status_condition.wait_for(lambda: self._in_status(status))
 
 	def _is_connected(self) -> bool:
 		return self._in_status({ClientStatus.CONNECTED, ClientStatus.ONLINE})
@@ -95,8 +86,11 @@ class ChatBridgeClient(ChatBridgeBase):
 	#   Connection
 	# --------------
 
-	def set_address(self, addr: Address):
-		self._address = addr
+	def set_server_address(self, addr: Address):
+		self.__server_address = addr
+
+	def get_server_address(self) -> Address:
+		return self.__server_address
 
 	@property
 	def ping(self) -> float:
@@ -111,17 +105,21 @@ class ChatBridgeClient(ChatBridgeBase):
 		else:
 			return 'N/A'
 
+	def _set_socket(self, sock: Optional[socket.socket]):
+		with self.__sock_lock:
+			self.__sock = sock
+
 	def __connect(self):
 		"""
 		status: STOPPED -> CONNECTED
 		"""
 		self._assert_status(ClientStatus.STOPPED)
-		assert self._address is not None
-		self.logger.info('Connecting to {}'.format(self._address.pretty_str()))
+		self._set_status(ClientStatus.CONNECTING)
+		assert self.__server_address is not None
+		self.logger.info('Connecting to {}'.format(self.__server_address))
 		sock = socket.socket()
-		sock.connect(self._address)
-		with self.__sock_lock:
-			self._sock = sock
+		sock.connect(self.__server_address)
+		self._set_socket(sock)
 		self._set_status(ClientStatus.CONNECTED)
 
 	def __disconnect(self):
@@ -132,12 +130,12 @@ class ChatBridgeClient(ChatBridgeBase):
 			return
 		with self.__sock_lock:
 			self._set_status(ClientStatus.DISCONNECTED)  # set the status first so no exception errors get spammed
-			if self._sock is not None:
+			if self.__sock is not None:
 				try:
-					self._sock.close()
+					self.__sock.close()
 				except:
 					pass
-			self._sock = None
+			self._set_socket(None)
 
 	def _tick_connection(self):
 		try:
@@ -160,25 +158,42 @@ class ChatBridgeClient(ChatBridgeBase):
 	def start(self):
 		assert self._on_external_thread()
 		if not self._is_stopped():
-			self.logger.debug('Client is running, cannot start again')
-		else:
+			self.logger.warning('Client is running, cannot start again')
+			return
+		acq = self.__start_stop_lock.acquire(blocking=False)
+		if not acq:
+			self.logger.warning('Client is already starting')
+			return
+		try:
 			self.logger.debug('Starting client')
+			self.__connection_done.clear()
 			super().start()
-			self._wait_for_status({ClientStatus.ONLINE, ClientStatus.DISCONNECTED})  # wait for login result
+			self.__connection_done.wait()
+		finally:
+			self.__start_stop_lock.release()
 
 	def stop(self):
 		assert self._on_external_thread()
 		if self._is_stopped():
-			self.logger.debug('Client is stopped, cannot stop again')
-		else:
+			self.logger.warning('Client is stopped, cannot stop again')
+			return
+		acq = self.__start_stop_lock.acquire(blocking=False)
+		if not acq:
+			self.logger.warning('Client is already stopping')
+			return
+		try:
 			self.logger.debug('Stopping client')
 			self.__disconnect()
 			super().stop()
+		finally:
+			self.__start_stop_lock.release()
 
 	def restart(self):
 		self.logger.info('Restarting client')
-		self.stop()
-		self.start()
+		with self.__start_stop_lock:
+			if not self._is_stopped():
+				self.stop()
+			self.start()
 
 	def _connect_and_login(self):
 		self.__connect()
@@ -189,9 +204,10 @@ class ChatBridgeClient(ChatBridgeBase):
 		try:
 			self._connect_and_login()
 			self._set_status(ClientStatus.ONLINE)
-		except:
-			self.logger.exception('Failed to connect to the server and login')
+		except Exception as e:
+			self.logger.error('Failed to connect to {}: {}'.format(self.__server_address, e))
 			self.__disconnect()
+			self.__connection_done.set()
 		else:
 			self._on_started()
 			while self.is_online():
@@ -213,6 +229,7 @@ class ChatBridgeClient(ChatBridgeBase):
 			self._set_status(ClientStatus.STOPPED)
 
 	def _on_started(self):
+		self.__connection_done.set()
 		self._start_keep_alive_thread()
 
 	def _on_stopped(self):
@@ -225,14 +242,14 @@ class ChatBridgeClient(ChatBridgeBase):
 
 	def _send_packet(self, packet: AbstractPacket):
 		if self._is_connected():
-			net_util.send_data(self._sock, self._cryptor, packet)
+			net_util.send_data(self.__sock, self._cryptor, packet)
 		else:
 			self.logger.warning('Trying to send a packet when not connected')
 
 	T = TypeVar('T')
 
 	def _receive_packet(self, packet_type: Type[T]) -> T:
-		data_string = net_util.receive_data(self._sock, self._cryptor, timeout=self.TIMEOUT)
+		data_string = net_util.receive_data(self.__sock, self._cryptor, timeout=self.TIMEOUT)
 		try:
 			js_dict = json.loads(data_string)
 		except ValueError:
@@ -289,7 +306,7 @@ class ChatBridgeClient(ChatBridgeBase):
 	def _send_keep_alive_ping(self):
 		self.send_to(PacketType.keep_alive, self._keep_alive_target(), KeepAlivePayload.ping())
 
-	def send_chat(self, author: str, message: str):
+	def send_chat(self, message: str, author: str = ''):
 		self.send_to_all(PacketType.chat, ChatPayload(author=author, message=message))
 
 	def send_command(self, target: str, command: str, param: Optional[Union[Serializable, dict]] = None):
@@ -318,8 +335,10 @@ class ChatBridgeClient(ChatBridgeBase):
 		"""
 		while self.is_online():
 			time.sleep(random.random())
+			if not self.is_online():
+				break
 			self.__keep_alive_received.clear()
-			time_sent = time.time()
+			time_sent = time.monotonic()
 			try:
 				self._send_keep_alive_ping()
 			except:
@@ -330,7 +349,7 @@ class ChatBridgeClient(ChatBridgeBase):
 			if not self.is_online():
 				break
 			if self.__keep_alive_received.is_set():
-				self.__ping_array.append(time.time() - time_sent)
+				self.__ping_array.append(time.monotonic() - time_sent)
 				if len(self.__ping_array) > 5:
 					self.__ping_array.pop(0)
 				self.logger.debug('Keep-alive responded, ping = {}ms'.format(round(self.ping * 1000, 2)))

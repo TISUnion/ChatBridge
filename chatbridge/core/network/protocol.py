@@ -4,14 +4,14 @@ from typing import List, Optional, Union
 
 from mcdreforged.utils.serializer import Serializable
 
-from chatbridge.common.serializer import NoMissingSerializable
+from chatbridge.common.serializer import NoMissingFieldSerializable
 
 # ==============
 #     Packet
 # ==============
 
 
-class AbstractPacket(NoMissingSerializable, ABC):
+class AbstractPacket(NoMissingFieldSerializable, ABC):
 	pass
 
 
@@ -42,7 +42,7 @@ class ChatBridgePacket(AbstractPacket):
 # ==============
 
 
-class AbstractPayload(NoMissingSerializable, ABC):
+class AbstractPayload(NoMissingFieldSerializable, ABC):
 	pass
 
 

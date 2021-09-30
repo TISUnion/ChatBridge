@@ -100,7 +100,7 @@ class DiscordBot(commands.Bot):
 						return
 			# Chat
 			if message.channel.id == self.config.channel_for_chat:
-				stored.client.send_chat(message.author.name, message.content)
+				stored.client.send_chat(message.content, message.author.name)
 
 	def add_message(self, data, channel_id, t):
 		self.messages.put(MessageData(data=data, channel=channel_id, type=t))

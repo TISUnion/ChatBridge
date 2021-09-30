@@ -9,7 +9,7 @@ class Address(NamedTuple):
 	hostname: str
 	port: int
 
-	def pretty_str(self) -> str:
+	def __str__(self):
 		return '{}:{}'.format(self.hostname, self.port)
 
 
