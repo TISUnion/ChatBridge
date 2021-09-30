@@ -1,7 +1,5 @@
 import sys
 
-from chatbridge.common import constants
-
 __all__ = [
 	'main'
 ]
@@ -40,13 +38,13 @@ def kaiheila():
 def main():
 	if len(sys.argv) == 2:
 		arg = sys.argv[1]
-		entry = globals().get(arg)
+		entry = getattr(sys.modules[__name__], arg, None)
 		if entry is not None and entry not in __all__ and callable(entry):
 			entry()
 		else:
 			print('Unknown argument {}'.format(arg))
 	else:
-		prefix = 'python -m {}'.format(constants.PACKAGE_NAME)
+		prefix = 'python -m {}'.format(sys.argv[0])
 		print('{} client: Start a simple text-chatting-only ChatBridge client'.format(prefix))
 		print('{} server: Start the ChatBridge server'.format(prefix))
 		print('{} discord_bot: Start a Discord bot as client'.format(prefix))

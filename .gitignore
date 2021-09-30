@@ -11,3 +11,4 @@ StatsHelper.py
 *.zip
 *.mcdr
 *.pyz
+ChatBridge_*.json

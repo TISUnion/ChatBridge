@@ -10,20 +10,20 @@ Broadcast chat between Minecraft servers or even discord server
 
 Python 3.6+ required
 
-Enter `python -m ChatBridge-*.mcdr` in command line to see possible helps
+Enter `python -m ChatBridge.pyz` in command line to see possible helps
 
 At launch, if the configure file is missing, chatbridge will automatically generate a default one and exit
 
 ## CLI Server
 
 ```
-python -m ChatBridge-*.mcdr server
+python -m ChatBridge.pyz server
 ```
 
 ## CLI Client
 
 ```
-python -m ChatBridge-*.mcdr client
+python -m ChatBridge.pyz client
 ```
 
 ## [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) plugin client
@@ -34,7 +34,7 @@ Just put the `.mcdr` file into the plugin folder
 
 ## Discord bot client
 
-`python -m ChatBridge-*.mcdr discord_bot`
+`python -m ChatBridge.pyz discord_bot`
 
 Extra requirements (also listed in `/chatbridge/impl/discord/requirements.txt`):
 
@@ -52,7 +52,7 @@ google_trans_new
 ## Client as a CoolqHttp client
 
 ```
-python -m ChatBridge-*.mcdr cqhttp_bot
+python -m ChatBridge.pyz cqhttp_bot
 ```
 
 Extra requirements (also listed in `/cqhttp/impl/discord/requirements.txt`):
@@ -76,5 +76,5 @@ Type `!!help` in QQ for more help
 ## Client to response online command
 
 ```
-python -m ChatBridge-*.mcdr cqhttp_bot
+python -m ChatBridge.pyz cqhttp_bot
 ```

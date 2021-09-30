@@ -13,7 +13,7 @@
     "dependencies": {
         "mcdreforged": ">=2.2.0-"
     },
-    "archive_name": "ChatBridge-v{version}.pyz",
+    "archive_name": "ChatBridge.pyz",
     "entrypoint": "chatbridge.impl.mcdr.mcdr_entry",
     "resources": [
         "lang",
