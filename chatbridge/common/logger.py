@@ -1,15 +1,15 @@
 import os
 import sys
 import time
+import weakref
 import zipfile
 from logging import FileHandler, Formatter, Logger, DEBUG, StreamHandler, INFO
 from threading import RLock
-from typing import Optional
+from typing import Optional, Set
 
 from colorlog import ColoredFormatter
 
 LOGGING_DIR = os.path.join('logs')
-DEBUG_SWITCH = False
 
 
 class SyncStdoutStreamHandler(StreamHandler):
@@ -63,6 +63,14 @@ class ChatBridgeLogger(Logger):
 			'CRITICAL': 'red'
 		}
 	}
+	__DEBUG_SWITCH = False
+	__REFS: Set['ChatBridgeLogger'] = weakref.WeakSet()
+
+	@classmethod
+	def set_debug_all(cls, value: bool):
+		cls.__DEBUG_SWITCH = value
+		for logger in cls.__REFS:
+			logger.__refresh_debug_level()
 
 	def __init__(self, name: str, *, file_name: Optional[str] = None, file_handler: Optional[FileHandler] = None):
 		super().__init__(name)
@@ -80,7 +88,15 @@ class ChatBridgeLogger(Logger):
 			self.file_handler = file_handler
 		if self.file_handler is not None:
 			self.addHandler(self.file_handler)
-		self.setLevel(DEBUG if DEBUG_SWITCH else INFO)
+		self.__REFS.add(self)
+		self.__refresh_debug_level()
+
+	@classmethod
+	def is_debug_enabled(cls) -> bool:
+		return cls.__DEBUG_SWITCH
+
+	def __refresh_debug_level(self):
+		self.setLevel(DEBUG if self.__DEBUG_SWITCH else INFO)
 
 	def close_file(self):
 		if self.file_handler is not None:

@@ -1,4 +1,5 @@
 import os
+import shutil
 from threading import Event, Lock
 from typing import Optional
 
@@ -29,7 +30,7 @@ def display_status(source: CommandSource):
 	if config is None or client is None:
 		source.reply(tr('status.not_init'))
 	else:
-		source.reply(tr('status.not_init', client.is_online()))
+		source.reply(tr('status.info', client.is_online(), client.get_ping_text()))
 
 
 @new_thread('ChatBridge-restart')
@@ -43,6 +44,7 @@ def restart_client(source: CommandSource):
 def on_unload(server: PluginServerInterface):
 	with cb_lock:
 		if client is not None and client.is_online():
+			server.logger.info('Stopping chatbridge client due to plugin unload')
 			client.stop()
 	cb_stop_done.set()
 
@@ -57,21 +59,28 @@ def send_chat(message: str, *, author: str = ''):
 
 
 def on_load(server: PluginServerInterface, old_module):
+	cb1_config_path = os.path.join('config', 'ChatBridge_client.json')
+	config_path = os.path.join(server.get_data_folder(), 'config.json')
+	if os.path.isfile(cb1_config_path) and not os.path.isfile(config_path):
+		shutil.copyfile(cb1_config_path, config_path)
+		server.logger.info('Migrated configure file from ChatBridge v1: {} -> {}'.format(cb1_config_path, config_path))
+		server.logger.info('You need to delete the old config file manually if you want')
+
 	global client, config
-	if not os.path.isfile(os.path.join('config', server.get_self_metadata().id, 'config.json')):
+	if not os.path.isfile(config_path):
 		server.logger.exception('Config file not found! ChatBridge will not work properly')
 		server.logger.error('Fill the default configure file with correct values and reload the plugin')
 		server.save_config_simple(MCDRClientConfig.get_default())
 		return
 
 	try:
-		config = server.load_config_simple(target_class=MCDRClientConfig)
+		config = server.load_config_simple(file_name=config_path, in_data_folder=False, target_class=MCDRClientConfig)
 	except:
 		server.logger.exception('Failed to read the config file! ChatBridge might not work properly')
 		server.logger.error('Fix the configure file and then reload the plugin')
-	if config.debug:
-		logger.DEBUG_SWITCH = True
 	client = ChatBridgeMCDRClient(config, server)
+	if config.debug:
+		client.logger.set_debug_all(True)
 	for prefix in Prefixes:
 		server.register_help_message(prefix, tr('help_summary'))
 	server.register_command(
@@ -88,6 +97,7 @@ def on_load(server: PluginServerInterface, old_module):
 				stop_event: Event = old_module.cb_stop_done
 				if not stop_event.wait(30):
 					server.logger.warning('Previous chatbridge instance does not stop for 30s')
+			server.logger.info('Starting chatbridge client')
 			client.start()
 
 	start()

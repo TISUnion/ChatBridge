@@ -29,10 +29,17 @@ class CLIServer(ChatBridgeServer):
 				self.logger.info('Client count: {}'.format(len(self.clients)))
 				for client in self.clients.values():
 					self.logger.info('- {}: online = {}, ping = {}'.format(client.info.name, client.is_online(), client.get_ping_text()))
+			elif text == 'debug on':
+				self.logger.set_debug_all(True)
+				self.logger.info('Debug logging on')
+			elif text == 'debug off':
+				self.logger.set_debug_all(False)
+				self.logger.info('Debug logging off')
 			else:
 				self.logger.info('stop": stop the server')
 				self.logger.info('stop <client_name>": stop a client')
 				self.logger.info('list": show the client list')
+				self.logger.info('debug on|off": switch debug logging')
 
 
 def main():

@@ -12,7 +12,7 @@ class CLIClient(ChatBridgeClient):
 		self.logger.info('Connected to the server')
 
 	def _on_stopped(self):
-		super()._on_started()
+		super()._on_stopped()
 		self.logger.info('Disconnected')
 
 	def on_chat(self, sender: str, payload: ChatPayload):
@@ -43,6 +43,7 @@ class CLIClient(ChatBridgeClient):
 def main():
 	config: ClientConfig = utils.load_config(ConfigFile, ClientConfig)
 	client = CLIClient.create(config)
+	client.logger.set_debug_all(True)
 	print('AES Key = {}'.format(config.aes_key))
 	print('Client Info: name = {}, password = {}'.format(config.name, config.password))
 	print('Server address = {}'.format(client.get_server_address()))

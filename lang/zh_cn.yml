@@ -9,5 +9,8 @@ chatbridge:
   help_summary: '跨服聊天控制'
   status:
     not_init: '跨服聊天未初始化，请检查服务端后台输出'
-    info: '跨服聊天客户端在线情况: {}'
+    info: |
+      跨服聊天状态:
+        在线: {0}
+        延迟: {1}
   restarted: '跨服聊天已重启'

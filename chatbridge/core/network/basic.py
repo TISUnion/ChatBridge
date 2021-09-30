@@ -21,8 +21,7 @@ class ChatBridgeBase:
 		self.aes_key = aes_key
 		self._cryptor = AESCryptor(aes_key)
 		self.__thread_run: Optional[Thread] = None
-		self.__threads: List[Thread] = []
-		self.__threads_lock = RLock()
+		self.__thread_run_lock = RLock()
 
 	def get_name(self) -> str:
 		return self.__name
@@ -39,7 +38,7 @@ class ChatBridgeBase:
 	def _start_thread(self, target: Callable, name: str) -> Thread:
 		thread = Thread(target=target, args=(), name=name, daemon=True)
 		thread.start()
-		self.__threads.append(thread)
+		self.logger.debug('Started thread {}: {}'.format(name, thread))
 		return thread
 
 	@classmethod
@@ -49,9 +48,11 @@ class ChatBridgeBase:
 	def start(self):
 		def func():
 			self._main_loop()
-			self.__clean_up()
+			self.logger.close_file()
+			with self.__thread_run_lock:
+				self.__thread_run = None
 
-		with self.__threads_lock:
+		with self.__thread_run_lock:
 			if self.__thread_run is not None:
 				raise RuntimeError('Already running')
 			self.__thread_run = self._start_thread(func, self._get_main_loop_thread_name())
@@ -61,26 +62,15 @@ class ChatBridgeBase:
 		Stop the client/server, and wait until the MainLoop thread exits
 		Need to be called on a non-MainLoop thread
 		"""
-		self.__join_threads()
+		self.logger.debug('Joining MainLoop thread')
+		with self.__thread_run_lock:
+			thread = self.__thread_run
+		if thread is not None:
+			if thread is not current_thread():
+				thread.join()
+			else:
+				self.logger.warning('Joining current thread {}'.format(thread))
+		self.logger.debug('Joined MainLoop thread')
 
 	def _main_loop(self):
 		pass
-
-	def __clean_up(self):
-		self.logger.close_file()
-		self.__thread_run = None
-
-	def __join_threads(self):
-		self.logger.debug('Joining threads {}'.format(self.__threads))
-		with self.__threads_lock:
-			for thread in self.__threads:
-				if thread is not current_thread():
-					thread.join()
-				else:
-					self.logger.warning('Joining current thread {}'.format(thread))
-			self.__threads.clear()
-			self.__thread_run = None
-		self.logger.debug('Joined threads')
-
-	def _on_external_thread(self):
-		return current_thread() not in self.__threads

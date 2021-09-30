@@ -123,10 +123,13 @@ class ChatBridgeServer(ChatBridgeBase):
 
 	def __stop(self):
 		self.__stopping_flag = True
-		try:
-			self.__sock.close()
-		except:
-			pass
+		if self.__sock is not None:
+			try:
+				self.__sock.close()
+				self.__sock = None
+				self.logger.info('Socket closed')
+			except:
+				self.logger.exception('Error when stop close')
 
 	def stop(self):
 		self.__stop()

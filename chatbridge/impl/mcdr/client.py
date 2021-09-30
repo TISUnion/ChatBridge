@@ -41,8 +41,7 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 		self.logger.info('Client stopped')
 
 	def on_chat(self, sender: str, payload: ChatPayload):
-		if self.server is not None:
-			self.server.say(RText('[{}] {}'.format(sender, payload.formatted_str()), RColor.gray))
+		self.server.say(RText('[{}] {}'.format(sender, payload.formatted_str()), RColor.gray))
 
 	def on_command(self, sender: str, payload: CommandPayload):
 		command = payload.command

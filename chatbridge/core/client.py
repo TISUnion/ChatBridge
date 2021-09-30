@@ -20,6 +20,7 @@ from chatbridge.core.network.protocol import LoginPacket, LoginResultPacket
 
 
 class ClientStatus(Enum):
+	STARTING = auto()  # thread started
 	CONNECTING = auto()  # socket connecting
 	CONNECTED = auto()  # socket connected, logging in
 	ONLINE = auto()   # logged in, thread started
@@ -68,7 +69,7 @@ class ChatBridgeClient(ChatBridgeBase):
 
 	def _assert_status(self, status: Union[ClientStatus, Collection[ClientStatus]]):
 		if not self._in_status(status):
-			raise AssertionError('Excepted status {} but {} found'.format(set(status), self.__status))
+			raise AssertionError('Excepted status {} but {} found'.format(status, self.__status))
 
 	def _is_connected(self) -> bool:
 		return self._in_status({ClientStatus.CONNECTED, ClientStatus.ONLINE})
@@ -113,7 +114,7 @@ class ChatBridgeClient(ChatBridgeBase):
 		"""
 		status: STOPPED -> CONNECTED
 		"""
-		self._assert_status(ClientStatus.STOPPED)
+		self._assert_status(ClientStatus.STARTING)
 		self._set_status(ClientStatus.CONNECTING)
 		assert self.__server_address is not None
 		self.logger.info('Connecting to {}'.format(self.__server_address))
@@ -156,37 +157,26 @@ class ChatBridgeClient(ChatBridgeBase):
 	# --------------
 
 	def start(self):
-		assert self._on_external_thread()
-		if not self._is_stopped():
-			self.logger.warning('Client is running, cannot start again')
-			return
-		acq = self.__start_stop_lock.acquire(blocking=False)
-		if not acq:
-			self.logger.warning('Client is already starting')
-			return
-		try:
-			self.logger.debug('Starting client')
-			self.__connection_done.clear()
-			super().start()
-			self.__connection_done.wait()
-		finally:
-			self.__start_stop_lock.release()
+		self.logger.debug('Starting client')
+		with self.__start_stop_lock:
+			if not self._is_stopped():
+				self.logger.warning('Client is running, cannot start again')
+				return
+			self._set_status(ClientStatus.STARTING)
+		self.__connection_done.clear()
+		super().start()
+		self.__connection_done.wait()
+		self.logger.debug('Started client')
 
 	def stop(self):
-		assert self._on_external_thread()
-		if self._is_stopped():
-			self.logger.warning('Client is stopped, cannot stop again')
-			return
-		acq = self.__start_stop_lock.acquire(blocking=False)
-		if not acq:
-			self.logger.warning('Client is already stopping')
-			return
-		try:
-			self.logger.debug('Stopping client')
-			self.__disconnect()
-			super().stop()
-		finally:
-			self.__start_stop_lock.release()
+		self.logger.debug('Stopping client')
+		with self.__start_stop_lock:
+			if self._is_stopped():
+				self.logger.warning('Client is stopped, cannot stop again')
+				return
+			self.__disconnect()  # state -> STOPPED or DISCONNECTED
+		super().stop()
+		self.logger.debug('Stopped client')
 
 	def restart(self):
 		self.logger.info('Restarting client')
@@ -205,7 +195,7 @@ class ChatBridgeClient(ChatBridgeBase):
 			self._connect_and_login()
 			self._set_status(ClientStatus.ONLINE)
 		except Exception as e:
-			self.logger.error('Failed to connect to {}: {}'.format(self.__server_address, e))
+			(self.logger.exception if self.logger.is_debug_enabled() else self.logger.error)('Failed to connect to {}: {}'.format(self.__server_address, e))
 			self.__disconnect()
 			self.__connection_done.set()
 		else:
@@ -230,11 +220,14 @@ class ChatBridgeClient(ChatBridgeBase):
 
 	def _on_started(self):
 		self.__connection_done.set()
-		self._start_keep_alive_thread()
+		self.__thread_keep_alive = self._start_keep_alive_thread()
 
 	def _on_stopped(self):
 		if self._is_connected():
 			self.__disconnect()
+		self.logger.debug('Joining keep alive thread')
+		self.__thread_keep_alive.join()
+		self.logger.debug('Joined keep alive thread')
 
 	# ----------------
 	#   Packet Logic
@@ -323,8 +316,8 @@ class ChatBridgeClient(ChatBridgeBase):
 	def _get_keep_alive_thread_name(cls):
 		return 'KeepAlive'
 
-	def _start_keep_alive_thread(self):
-		self._start_thread(self._keep_alive_loop, self._get_keep_alive_thread_name())
+	def _start_keep_alive_thread(self) -> Thread:
+		return self._start_thread(self._keep_alive_loop, self._get_keep_alive_thread_name())
 
 	def _keep_alive_target(self) -> str:
 		return constants.SERVER_NAME

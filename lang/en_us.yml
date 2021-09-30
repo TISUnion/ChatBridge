@@ -9,5 +9,8 @@ chatbridge:
   help_summary: 'Chatbridge control'
   status:
     not_init: 'Chatbridge is not initialized, please check the server console output'
-    info: 'Chatbridge online state: {}'
-  restarted: 'Chatbridge restarted'
+    info: |
+      Chatbridge status:
+        Online: {0}
+        ping: {1}
+    restarted: 'Chatbridge restarted'
