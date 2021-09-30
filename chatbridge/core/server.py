@@ -1,5 +1,6 @@
 import json
 import socket
+from concurrent.futures.thread import ThreadPoolExecutor
 from threading import Thread, Event
 from typing import Dict, Optional
 
@@ -20,16 +21,16 @@ class _ClientConnection(ChatBridgeClient):
 		self.logger.addHandler(self.server.logger.file_handler)
 
 	def get_logging_name(self) -> str:
-		return 'Server.{}'.format(self.get_connected_client_name())
+		return 'Server.{}'.format(self.get_connection_client_name())
 
 	def get_logging_file_name(self) -> Optional[str]:
 		return None
 
-	def get_connected_client_name(self) -> str:
+	def get_connection_client_name(self) -> str:
 		return self.info.name
 
 	def _keep_alive_target(self) -> str:
-		return self.get_connected_client_name()
+		return self.get_connection_client_name()
 
 	def _connect_and_login(self):
 		"""
@@ -40,7 +41,7 @@ class _ClientConnection(ChatBridgeClient):
 
 	def _send_packet(self, packet: AbstractPacket):
 		super()._send_packet(packet)
-		self.server.log_packet(packet, to_client=True)
+		self.server.log_packet(packet, to_client=True, client_name=self.get_connection_client_name())
 
 	def send_packet_invoker(self, packet: AbstractPacket):
 		self._send_packet(packet)
@@ -126,6 +127,10 @@ class ChatBridgeServer(ChatBridgeBase):
 		if self.__sock is not None:
 			try:
 				self.__sock.close()
+				with ThreadPoolExecutor(max_workers=len(self.clients)) as worker:
+					for client in self.clients.values():
+						if client.is_running():
+							worker.submit(client.stop)
 				self.__sock = None
 				self.logger.info('Socket closed')
 			except:
@@ -159,15 +164,15 @@ class ChatBridgeServer(ChatBridgeBase):
 			conn.close()
 			self.logger.warning('Closed connection from {}'.format(addr))
 
-	def log_packet(self, packet: AbstractPacket, *, to_client: bool = None):
+	def log_packet(self, packet: AbstractPacket, *, to_client: bool, client_name: str = None):
 		if isinstance(packet, ChatBridgePacket):
-			self.logger.debug('[{} -> {}] {}: {}'.format(
-				packet.sender, ','.join(packet.receivers) if not packet.broadcast else '*',
-				packet.type,
-				packet.payload
-			))
+			if to_client:
+				assert client_name is not None
+				indicator = '-> {}'.format(client_name)
+			else:
+				indicator = '{} -> {}'.format(packet.sender, ','.join(packet.receivers) if not packet.broadcast else '*')
+			self.logger.debug('[{}] {}: {}'.format(indicator, packet.type, packet.payload))
 		else:
-			assert to_client is not None
 			if to_client:
 				indicator = '{} -> ?'.format(constants.SERVER_NAME)
 			else:
@@ -178,12 +183,13 @@ class ChatBridgeServer(ChatBridgeBase):
 		if packet.sender != client.info.name:
 			self.logger.warning('Un-matched sender name during packet transferring, expected {} but found {}'.format(client.info.name, packet.sender))
 			return
-		self.log_packet(packet)
+		self.log_packet(packet, to_client=False)
 		if packet.type == PacketType.chat:
 			try:
-				self.on_chat(client.get_connected_client_name(), ChatPayload.deserialize(packet.payload))
+				self.on_chat(client.get_connection_client_name(), ChatPayload.deserialize(packet.payload))
 			except:
-				self.logger.exception('Error when deserialize chat packet from {}'.format(client.get_connected_client_name()))
+				self.logger.exception('Error when deserialize chat packet from {}'.format(
+					client.get_connection_client_name()))
 		receivers = packet.receivers if not packet.broadcast else self.clients.keys()
 		for receiver_name in set(receivers):
 			if receiver_name != packet.sender:

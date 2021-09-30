@@ -71,11 +71,14 @@ class ChatBridgeClient(ChatBridgeBase):
 		if not self._in_status(status):
 			raise AssertionError('Excepted status {} but {} found'.format(status, self.__status))
 
-	def _is_connected(self) -> bool:
-		return self._in_status({ClientStatus.CONNECTED, ClientStatus.ONLINE})
-
 	def is_online(self) -> bool:
 		return self._in_status(ClientStatus.ONLINE)
+
+	def is_running(self) -> bool:
+		return not self._is_stopped()
+
+	def _is_connected(self) -> bool:
+		return self._in_status({ClientStatus.CONNECTED, ClientStatus.ONLINE})
 
 	def _is_stopping_or_stopped(self) -> bool:
 		return self._in_status({ClientStatus.DISCONNECTED, ClientStatus.STOPPED})
@@ -159,7 +162,7 @@ class ChatBridgeClient(ChatBridgeBase):
 	def start(self):
 		self.logger.debug('Starting client')
 		with self.__start_stop_lock:
-			if not self._is_stopped():
+			if self.is_running():
 				self.logger.warning('Client is running, cannot start again')
 				return
 			self._set_status(ClientStatus.STARTING)
@@ -189,6 +192,7 @@ class ChatBridgeClient(ChatBridgeBase):
 		self.__connect()
 		self._send_packet(LoginPacket(name=self.__info.name, password=self.__info.password))
 		self._receive_packet(LoginResultPacket)
+		self.logger.info('Connected to the server')
 
 	def _main_loop(self):
 		try:
@@ -302,8 +306,8 @@ class ChatBridgeClient(ChatBridgeBase):
 	def send_chat(self, message: str, author: str = ''):
 		self.send_to_all(PacketType.chat, ChatPayload(author=author, message=message))
 
-	def send_command(self, target: str, command: str, param: Optional[Union[Serializable, dict]] = None):
-		self.send_to(PacketType.command, target, CommandPayload.ask(command, param))
+	def send_command(self, target: str, command: str, params: Optional[Union[Serializable, dict]] = None):
+		self.send_to(PacketType.command, target, CommandPayload.ask(command, params))
 
 	def reply_command(self, target: str, asker_payload: 'CommandPayload', result: Union[Serializable, dict]):
 		self.send_to(PacketType.command, target, CommandPayload.answer(asker_payload, result))

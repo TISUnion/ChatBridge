@@ -10,8 +10,8 @@ ConfigFile = 'ChatBridge_discord.json'
 
 def main():
 	stored.config = utils.load_config(ConfigFile, DiscordConfig)
-	stored.bot = bot.create_bot()
 	stored.client = DiscordChatClient.create(stored.config)
+	stored.bot = bot.create_bot()
 	utils.start_guardian(stored.client)
 
 	try:

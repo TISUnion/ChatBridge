@@ -15,7 +15,7 @@ class StatsQueryResult(Serializable):
 
 	@classmethod
 	def create(cls, stats_name: str, data: List[str], total: int) -> 'StatsQueryResult':
-		return StatsQueryResult(error_code=0, message='ok', stats_name=stats_name, data=data, total=total)
+		return StatsQueryResult(error_code=0, stats_name=stats_name, data=data, total=total)
 
 	@classmethod
 	def unknown_stat(cls) -> 'StatsQueryResult':

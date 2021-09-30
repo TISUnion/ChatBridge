@@ -4,7 +4,7 @@ from typing import Optional
 
 import websocket
 
-from chatbridge.common import logger
+from chatbridge.common.logger import ChatBridgeLogger
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.network.protocol import ChatPayload, CommandPayload
 from chatbridge.impl import utils
@@ -38,9 +38,9 @@ class CQBot(websocket.WebSocketApp):
 		url = 'ws://{}:{}/'.format(self.config.ws_address, self.config.ws_port)
 		if self.config.access_token is not None:
 			url += '?access_token={}'.format(self.config.access_token)
-		self.logger = logger.ChatBridgeLogger('Bot', file_handler=self.logger.file_handler)
+		self.logger = ChatBridgeLogger('Bot', file_handler=chatClient.logger.file_handler)
 		self.logger.info('Connecting to {}'.format(url))
-		super().__init__(url,  on_message=self.on_message, on_close=self.on_close, on_error=self.on_error)
+		super().__init__(url,  on_message=self.on_message, on_close=self.on_close)
 
 	def start(self):
 		self.run_forever()

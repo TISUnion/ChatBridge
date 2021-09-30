@@ -7,7 +7,7 @@ from chatbridge.impl.tis.protocol import StatsQueryResult, OnlineQueryResult
 
 class DiscordChatClient(ChatBridgeClient):
 	def on_chat(self, sender: str, payload: ChatPayload):
-		stored.bot.add_message(payload, None, MessageDataType.CHAT)
+		stored.bot.add_message((sender, payload), None, MessageDataType.CHAT)
 
 	def on_command(self, sender: str, payload: CommandPayload):
 		try:

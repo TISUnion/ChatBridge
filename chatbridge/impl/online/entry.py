@@ -52,7 +52,7 @@ class OnlineChatClient(ChatBridgeClient):
 				rcon.disconnect()
 		counter_sorted = sorted([(key, value) for key, value in counter.items()], key=lambda x: x[0].upper())
 		player_set_all = set()
-		result: List[str] = ['Players in {} bungeecord servers: \n'.format(len(config.bungeecord_list))]
+		result: List[str] = ['Players in {} bungeecord servers:'.format(len(config.bungeecord_list))]
 		for server_name, player_set in counter_sorted:
 			if player_set:
 				player_set_all.update(player_set)
@@ -61,12 +61,18 @@ class OnlineChatClient(ChatBridgeClient):
 		return result
 
 
-def console_input():
+def console_input_loop():
 	while True:
 		try:
 			text = input()
-			if text == '!!online':
+			if text in ['!!online', 'online']:
 				print('\n'.join(chatClient.query()))
+			elif text == 'stop':
+				chatClient.stop()
+				break
+			else:
+				print('online: show online status')
+				print('stop: stop the client')
 		except:
 			traceback.print_exc()
 
@@ -75,7 +81,8 @@ def main():
 	global config, chatClient
 	config = utils.load_config(ClientConfigFile, OnlineConfig)
 	chatClient = OnlineChatClient.create(config)
-	console_input()
+	utils.start_guardian(chatClient)
+	console_input_loop()
 
 
 if __name__ == '__main__':

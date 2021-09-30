@@ -96,7 +96,7 @@ class CommandPayload(AbstractPayload):
 			cid=uuid.uuid4().hex,
 			command=command,
 			responded=False,
-			param=params,
+			params=params,
 			result={},
 		)
 

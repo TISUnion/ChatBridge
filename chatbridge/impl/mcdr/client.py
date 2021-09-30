@@ -32,10 +32,6 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 	def _get_keep_alive_thread_name(cls):
 		return 'ChatBridge-' + super()._get_keep_alive_thread_name()
 
-	def _on_started(self):
-		super()._on_started()
-		self.logger.info('Connected to the server')
-
 	def _on_stopped(self):
 		super()._on_stopped()
 		self.logger.info('Client stopped')

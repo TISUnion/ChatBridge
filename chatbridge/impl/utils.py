@@ -25,7 +25,7 @@ def start_guardian(client: ChatBridgeClient) -> Thread:
 	def loop():
 		try:
 			while True:
-				if not client.is_online():
+				if not client.is_running():
 					client.start()
 				time.sleep(3)
 		except (KeyboardInterrupt, SystemExit):

@@ -12,6 +12,8 @@ Python 3.6+ required
 
 Enter `python -m ChatBridge-*.mcdr` in command line to see possible helps
 
+At launch, if the configure file is missing, chatbridge will automatically generate a default one and exit
+
 ## CLI Server
 
 ```
