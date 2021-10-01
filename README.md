@@ -1,14 +1,14 @@
 # ChatBridge
 
-Broadcast chat between Minecraft servers or even discord server
+> Broadcast chat between Minecraft servers or even discord server
+
+See [here](https://github.com/TISUnion/ChatBridge/tree/v1) for chatbridge v1. **NOT compatible with Chatbridge v1**
 
 **[WARNING]** ChatBridge is mainly for TIS's custom use so expect  hardcoded constants
 
 ![topomap](https://raw.githubusercontent.com/TISUnion/ChatBridge/master/topomap.png)
 
 ## Usage
-
-**NOT compatible with Chatbridge v1**
 
 Enter `python -m ChatBridge.pyz` in command line to see possible helps
 
