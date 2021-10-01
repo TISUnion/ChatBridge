@@ -225,6 +225,7 @@ class ChatBridgeClient(ChatBridgeBase):
 	def _on_started(self):
 		self.__connection_done.set()
 		self.__thread_keep_alive = self._start_keep_alive_thread()
+		self.__ping_array.clear()
 
 	def _on_stopped(self):
 		if self._is_connected():

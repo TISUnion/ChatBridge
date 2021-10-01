@@ -2,7 +2,7 @@ import json
 import os
 import time
 from threading import Thread
-from typing import Type, TypeVar
+from typing import Type, TypeVar, Callable
 
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.config import BasicConfig
@@ -21,17 +21,14 @@ def load_config(config_path: str, config_class: Type[T]) -> T:
 		return config_class.deserialize(json.load(file))
 
 
-def start_guardian(client: ChatBridgeClient) -> Thread:
+def start_guardian(client: ChatBridgeClient, wait_time: float = 10, loop_condition: Callable[[], bool] = lambda: True) -> Thread:
 	def loop():
-		try:
-			while True:
-				if not client.is_running():
-					client.start()
-				time.sleep(3)
-		except (KeyboardInterrupt, SystemExit):
-			client.stop()
+		while loop_condition():
+			if not client.is_running():
+				client.logger.info('Guardian triggered restart')
+				client.start()
+			time.sleep(wait_time)
 
-	thread = Thread(target=loop, args=())
-	thread.setDaemon(True)
+	thread = Thread(name='ChatBridge Guardian', target=loop, args=(), daemon=True)
 	thread.start()
 	return thread

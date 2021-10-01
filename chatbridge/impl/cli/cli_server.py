@@ -4,12 +4,27 @@ from chatbridge.core.network.protocol import ChatPayload
 from chatbridge.core.server import ChatBridgeServer
 from chatbridge.impl import utils
 
+
+class CLIServerConfig(ServerConfig):
+	show_chat: bool = True
+	log_chat: bool = False
+
+
+config: CLIServerConfig
 ConfigFile = 'ChatBridge_server.json'
+CHAT_LOGGING_FILE = 'chat.log'
 
 
 class CLIServer(ChatBridgeServer):
 	def on_chat(self, sender: str, content: ChatPayload):
-		self.logger.info('Chat from {}: {}'.format(sender, content.formatted_str()))
+		if config.show_chat:
+			self.logger.info('Chat from {}: {}'.format(sender, content.formatted_str()))
+		if config.log_chat:
+			try:
+				with open(CHAT_LOGGING_FILE, 'a') as file:
+					file.write('[{}] {}\n'.format(sender, content.formatted_str()))
+			except Exception as e:
+				self.logger.error('Failed to log chat message: {} {}'.format(type(e), e))
 
 	def console_loop(self):
 		while self.is_running():
@@ -43,7 +58,8 @@ class CLIServer(ChatBridgeServer):
 
 
 def main():
-	config = utils.load_config(ConfigFile, ServerConfig)
+	global config
+	config = utils.load_config(ConfigFile, CLIServerConfig)
 	address = Address(config.hostname, config.port)
 	print('AES Key = {}'.format(config.aes_key))
 	print('Server address = {}'.format(address))

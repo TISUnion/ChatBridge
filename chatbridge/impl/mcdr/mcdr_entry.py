@@ -5,15 +5,15 @@ from typing import Optional
 
 from mcdreforged.api.all import *
 
-from chatbridge.common import logger
+from chatbridge.impl import utils
 from chatbridge.impl.mcdr.client import ChatBridgeMCDRClient
 from chatbridge.impl.mcdr.config import MCDRClientConfig
-
 
 META = ServerInterface.get_instance().as_plugin_server_interface().get_self_metadata()
 Prefixes = ('!!ChatBridge', '!!cb')
 client: Optional[ChatBridgeMCDRClient] = None
 config: Optional[MCDRClientConfig] = None
+plugin_unload_flag = False
 cb_stop_done = Event()
 cb_lock = Lock()
 
@@ -42,8 +42,10 @@ def restart_client(source: CommandSource):
 
 @new_thread('ChatBridge-unload')
 def on_unload(server: PluginServerInterface):
+	global plugin_unload_flag
+	plugin_unload_flag = True
 	with cb_lock:
-		if client is not None and client.is_online():
+		if client is not None and client.is_running():
 			server.logger.info('Stopping chatbridge client due to plugin unload')
 			client.stop()
 	cb_stop_done.set()
@@ -53,9 +55,10 @@ def on_unload(server: PluginServerInterface):
 def send_chat(message: str, *, author: str = ''):
 	with cb_lock:
 		if client is not None:
-			if not client.is_online():
+			if not client.is_running():
 				client.start()
-			client.send_chat(message, author)
+			if client.is_online():
+				client.send_chat(message, author)
 
 
 def on_load(server: PluginServerInterface, old_module):
@@ -99,6 +102,7 @@ def on_load(server: PluginServerInterface, old_module):
 					server.logger.warning('Previous chatbridge instance does not stop for 30s')
 			server.logger.info('Starting chatbridge client')
 			client.start()
+			utils.start_guardian(client, wait_time=60, loop_condition=lambda: plugin_unload_flag)
 
 	start()
 

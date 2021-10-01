@@ -1,7 +1,7 @@
 import json
 import socket
 from concurrent.futures.thread import ThreadPoolExecutor
-from threading import Thread, Event
+from threading import Thread, Event, RLock
 from typing import Dict, Optional
 
 from chatbridge.common import constants
@@ -73,6 +73,7 @@ class ChatBridgeServer(ChatBridgeBase):
 		self.clients: Dict[str, _ClientConnection] = {}
 		self.__sock: Optional[socket.socket] = None
 		self.__thread_run: Optional[Thread] = None
+		self.__stop_lock = RLock()
 		self.__stopping_flag = False
 		self.__binding_done = Event()
 
@@ -103,6 +104,9 @@ class ChatBridgeServer(ChatBridgeBase):
 			while self.is_running():
 				try:
 					conn, addr = self.__sock.accept()
+					if not self.is_running():
+						conn.close()
+						break
 					address = Address(*addr)
 					counter += 1
 					self.logger.info('New connection #{} from {}'.format(counter, address))
@@ -124,17 +128,18 @@ class ChatBridgeServer(ChatBridgeBase):
 
 	def __stop(self):
 		self.__stopping_flag = True
-		if self.__sock is not None:
-			try:
-				self.__sock.close()
-				with ThreadPoolExecutor(max_workers=len(self.clients)) as worker:
-					for client in self.clients.values():
-						if client.is_running():
-							worker.submit(client.stop)
-				self.__sock = None
-				self.logger.info('Socket closed')
-			except:
-				self.logger.exception('Error when stop close')
+		with self.__stop_lock:
+			if self.__sock is not None:
+				try:
+					self.__sock.close()
+					with ThreadPoolExecutor(max_workers=len(self.clients)) as worker:
+						for client in self.clients.values():
+							if client.is_running():
+								worker.submit(client.stop)
+					self.__sock = None
+					self.logger.info('Socket closed')
+				except:
+					self.logger.exception('Error when stop close')
 
 	def stop(self):
 		self.__stop()
