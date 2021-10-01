@@ -1,3 +1,5 @@
+import time
+
 from chatbridge.core.config import ServerConfig
 from chatbridge.core.network.basic import Address
 from chatbridge.core.network.protocol import ChatPayload
@@ -22,7 +24,7 @@ class CLIServer(ChatBridgeServer):
 		if config.log_chat:
 			try:
 				with open(CHAT_LOGGING_FILE, 'a') as file:
-					file.write('[{}] {}\n'.format(sender, content.formatted_str()))
+					file.write('[{}] [{}] {}\n'.format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), sender, content.formatted_str()))
 			except Exception as e:
 				self.logger.error('Failed to log chat message: {} {}'.format(type(e), e))
 
