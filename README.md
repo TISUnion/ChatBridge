@@ -8,11 +8,23 @@ Broadcast chat between Minecraft servers or even discord server
 
 ## Usage
 
-Python 3.6+ required
+**NOT compatible with Chatbridge v1**
 
 Enter `python -m ChatBridge.pyz` in command line to see possible helps
 
 At launch, if the configure file is missing, chatbridge will automatically generate a default one and exit
+
+## Requirement
+
+Python 3.6+ required
+
+Requirements stored in `requirements.txt`, use `pip install -r requirements.txt` to install
+
+```
+mcdreforged>=2.2.0
+pycryptodome
+colorlog
+```
 
 ## CLI Server
 
@@ -44,7 +56,7 @@ python -m ChatBridge.pyz client
 
 ## [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) plugin client
 
-Required MCDR >=2.0
+Required MCDR >=2.2
 
 Just put the `.mcdr` file into the plugin folder
 
@@ -68,7 +80,6 @@ Extra requirements (also listed in `/chatbridge/impl/discord/requirements.txt`):
 
 ```
 discord.py
-google_trans_new
 ```
 
 Extra configure fields (compared to CLI client)

@@ -28,6 +28,7 @@ def start_guardian(client: ChatBridgeClient, wait_time: float = 10, loop_conditi
 				client.logger.info('Guardian triggered restart')
 				client.start()
 			time.sleep(wait_time)
+		client.logger.info('Guardian stopped')
 
 	thread = Thread(name='ChatBridge Guardian', target=loop, args=(), daemon=True)
 	thread.start()

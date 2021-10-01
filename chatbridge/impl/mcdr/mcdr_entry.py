@@ -102,7 +102,7 @@ def on_load(server: PluginServerInterface, old_module):
 					server.logger.warning('Previous chatbridge instance does not stop for 30s')
 			server.logger.info('Starting chatbridge client')
 			client.start()
-			utils.start_guardian(client, wait_time=60, loop_condition=lambda: plugin_unload_flag)
+			utils.start_guardian(client, wait_time=60, loop_condition=lambda: not plugin_unload_flag)
 
 	start()
 
