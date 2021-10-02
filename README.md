@@ -4,9 +4,28 @@
 
 See [here](https://github.com/TISUnion/ChatBridge/tree/v1) for chatbridge v1. **NOT compatible with Chatbridge v1**
 
-**[WARNING]** ChatBridge is mainly for TIS's custom use so expect  hardcoded constants
-
 ![topomap](https://raw.githubusercontent.com/TISUnion/ChatBridge/master/topomap.png)
+
+## Disclaimer
+
+ChatBridge is mainly for custom use of TIS server, especially the bot/command components:
+
+- CQHttp client
+- Discord client
+- Kaiheila client
+- Online command client
+
+Therefore for these **bot and related clients**:
+
+- Expect hardcoded constants in codes and lack of document/usage/support
+- PRs for features will not be accepted, related issues will probably be ignored
+- If you want more features, fork this repository and implement them yourself
+
+But the basic chatbridge components are within the support range, including:
+
+- CLI client
+- CLI server
+- MCDR plugin 
 
 ## Usage
 
@@ -137,6 +156,32 @@ Extra configure fields (compared to CLI client)
     "client_to_query_online": "MyClient2"  // a client described in the following section "Client to respond online command"
 ```
 
+## Kaiheila bot client
+
+`python -m ChatBridge.pyz kaiheila_bot`
+
+Extra requirements (also listed in `/chatbridge/impl/kaiheila/requirements.txt`):
+
+```
+khl.py==0.0.10
+```
+
+Extra configure fields (compared to CLI client)
+
+```json5
+    "client_id": "",  // kaiheila client id
+	"client_secret": "",  // kaiheila client secret
+	"token": "",  // kaiheila token
+    "channels_for_command": [  // a list of channels, public commands can be used here. use string
+        "123400000000000000",
+        "123450000000000000"
+    ],
+    "channel_for_chat": "123400000000000000",  // the channel for chatting and private commands. use string
+    "command_prefix": "!!",
+    "client_to_query_stats": "MyClient1",  // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
+    "client_to_query_online": "MyClient2"  // a client described in the following section "Client to respond online command"
+```
+
 ## Client to respond online command
 
 ```
@@ -146,12 +191,12 @@ python -m ChatBridge.pyz cqhttp_bot
 Extra configure fields (compared to CLI client)
 
 ```json5
-"bungeecord_list": [
-    {
-        "name": "BungeecordA",  // the name of the bungeecord server (unused value)
-        "address": "127.0.0.1",  // the address of the bungeecord rcon
-        "port": "3999",  // the port of the bungeecord rcon
-        "password": "Bungee Rcon Password"  // the password of the bungeecord rcon
-    }
-]
+    "bungeecord_list": [
+        {
+            "name": "BungeecordA",  // the name of the bungeecord server (unused value)
+            "address": "127.0.0.1",  // the address of the bungeecord rcon
+            "port": "3999",  // the port of the bungeecord rcon
+            "password": "Bungee Rcon Password"  // the password of the bungeecord rcon
+        }
+    ]
 ```
