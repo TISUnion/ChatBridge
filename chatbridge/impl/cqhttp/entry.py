@@ -40,12 +40,13 @@ class CQBot(websocket.WebSocketApp):
 			url += '?access_token={}'.format(self.config.access_token)
 		self.logger = ChatBridgeLogger('Bot', file_handler=chatClient.logger.file_handler)
 		self.logger.info('Connecting to {}'.format(url))
-		super().__init__(url,  on_message=self.on_message, on_close=self.on_close)
+		# noinspection PyTypeChecker
+		super().__init__(url, on_message=self.on_message, on_close=self.on_close)
 
 	def start(self):
 		self.run_forever()
 
-	def on_message(self, message):
+	def on_message(self, _, message: str):
 		try:
 			if chatClient is None:
 				return
@@ -97,7 +98,7 @@ class CQBot(websocket.WebSocketApp):
 		except:
 			self.logger.exception('Error in on_message()')
 
-	def on_close(self):
+	def on_close(self, *args):
 		self.logger.info("Close connection")
 
 	def _send_text(self, text):

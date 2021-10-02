@@ -108,11 +108,11 @@ Extra configure fields (compared to CLI client)
 python -m ChatBridge.pyz cqhttp_bot
 ```
 
-Extra requirements (also listed in `/cqhttp/impl/discord/requirements.txt`):
+Extra requirements (also listed in `/chatbridge/impl/cqhttp/requirements.txt`):
 
 ```
-websocket
-websocket-client
+websocket>=0.2.1
+websocket-client>=1.2.1
 ```
 
 Needs any CoolQ Http protocol provider to work. e.g. [go-cqhttp](https://github.com/Mrs4s/go-cqhttp)
