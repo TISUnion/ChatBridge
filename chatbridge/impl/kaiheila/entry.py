@@ -200,11 +200,17 @@ class KhlChatBridgeClient(ChatBridgeClient):
 			self.logger.warning('No channel id in command response data: {}'.format(payload.params))
 			return
 		if payload.command.startswith('!!stats '):
-			result = StatsQueryResult.deserialize(payload.result)
+			result: StatsQueryResult = StatsQueryResult.deserialize(payload.result)
 			if result.success:
 				khlBot.add_stats_result(result.stats_name, result.data, result.total, channel_id)
 			else:
-				khlBot.add_message(result.message, channel_id, MessageDataType.TEXT)
+				if result.error_code == 1:
+					message = '未知或空统计信息'
+				elif result.error_code == 2:
+					message = '未找到StatsHelper插件'
+				else:
+					message = '错误代码：{}'.format(result.error_code)
+				khlBot.add_message(message, channel_id, MessageDataType.TEXT)
 		elif payload.command == '!!online':
 			result = OnlineQueryResult.deserialize(payload.result)
 			khlBot.add_embed('TIS Online players', '\n'.join(result.data), channel_id)

@@ -17,11 +17,17 @@ class DiscordChatClient(ChatBridgeClient):
 			return
 		bot = stored.bot
 		if payload.command.startswith('!!stats '):
-			result = StatsQueryResult.deserialize(payload.result)
+			result: StatsQueryResult = StatsQueryResult.deserialize(payload.result)
 			if result.success:
 				bot.add_stats_result(result.stats_name, result.data, result.total, channel_id)
 			else:
-				bot.add_message(result.message, channel_id, MessageDataType.TEXT)
+				if result.error_code == 1:
+					message = 'Unknown or empty statistic'
+				elif result.error_code == 2:
+					message = 'StatsHelper plugin not found'
+				else:
+					message = 'Error code: {}'.format(result.error_code)
+				bot.add_message(message, channel_id, MessageDataType.TEXT)
 		elif payload.command == '!!online':
 			result = OnlineQueryResult.deserialize(payload.result)
 			bot.add_embed('TIS Online players', 'Player list', '\n'.join(result.data), channel_id)
