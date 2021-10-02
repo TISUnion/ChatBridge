@@ -15,7 +15,7 @@ ChatBridge is mainly for custom use of TIS server, especially the bot/command co
 - Kaiheila client
 - Online command client
 
-Therefore for these **bot and related clients**:
+Therefore for these bot and related clients:
 
 - Expect hardcoded constants in codes and lack of document/usage/support
 - PRs for features will not be accepted, related issues will probably be ignored
