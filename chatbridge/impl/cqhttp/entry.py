@@ -151,7 +151,7 @@ class CqHttpChatBridgeClient(ChatBridgeClient):
 		if payload.command.startswith('!!stats '):
 			result = StatsQueryResult.deserialize(payload.result)
 			if result.success:
-				messages = ['====== {} ======']
+				messages = ['====== {} ======'.format(result.stats_name)]
 				messages.extend(result.data)
 				messages.append('总数：{}'.format(result.total))
 				cq_bot.send_text('\n'.join(messages))
