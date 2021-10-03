@@ -139,7 +139,8 @@ class CqHttpChatBridgeClient(ChatBridgeClient):
 				pass
 			else:
 				if prefix == '!!qq':
-					self.logger.info('Triggered command, sending message to qq')
+					self.logger.info('Triggered command, sending message {} to qq'.format(payload.formatted_str()))
+					payload.message = message
 					cq_bot.send_message(sender, payload.formatted_str())
 		except:
 			self.logger.exception('Error in on_message()')
