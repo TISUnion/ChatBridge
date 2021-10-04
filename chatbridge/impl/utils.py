@@ -23,13 +23,15 @@ def load_config(config_path: str, config_class: Type[T]) -> T:
 
 def start_guardian(client: ChatBridgeClient, wait_time: float = 10, loop_condition: Callable[[], bool] = lambda: True) -> Thread:
 	def loop():
+		first = True
 		while loop_condition():
 			if not client.is_running():
-				client.logger.info('Guardian triggered restart')
+				client.logger.info('Guardian triggered {}'.format('start' if first else 'restart'))
 				client.start()
+			first = False
 			time.sleep(wait_time)
 		client.logger.info('Guardian stopped')
 
-	thread = Thread(name='ChatBridge Guardian', target=loop, args=(), daemon=True)
+	thread = Thread(name='ChatBridge Guardian', target=loop, daemon=True)
 	thread.start()
 	return thread
