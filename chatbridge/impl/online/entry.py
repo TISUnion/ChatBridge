@@ -35,32 +35,32 @@ class OnlineChatClient(ChatBridgeClient):
 			if not respond:
 				self.logger.warning('Rcon command not respond')
 				return
+			self.logger.info('Respond received: {}'.format(repr(respond)))
 			result_handler(respond)
 		except:
 			self.logger.exception('Error when querying {}'.format(server.name))
 		finally:
 			rcon.disconnect()
 
-	def handle_minecraft(self, updater: Callable[[str, Collection[str]], Any], server: RconEntry, respond: str):
+	@staticmethod
+	def handle_minecraft(updater: Callable[[str, Collection[str]], Any], server: RconEntry, respond: str):
 		formatters = (
 			r'There are {amount:d} of a max {limit:d} players online:{players}',  # <1.16
 			r'There are {amount:d} of a max of {limit:d} players online:{players}',  # >=1.16
 		)
-		self.logger.info('Respond received: {}'.format(respond))
 		for formatter in formatters:
 			parsed = parse.parse(formatter, respond)
 			if parsed is not None and parsed['players'].startswith(' '):
 				players = parsed['players'][1:]
 				if len(players) > 0:
 					updater(server.name, players.split(', '))
+				else:
+					updater(server.name, ())
 				break
-		else:
-			self.logger.warning('Unknown respond!')
 
-	def handle_bungee(self, updater: Callable[[str, Collection[str]], Any], respond: str):
-		self.logger.info('Respond received: ')
+	@staticmethod
+	def handle_bungee(updater: Callable[[str, Collection[str]], Any], respond: str):
 		for line in respond.splitlines():
-			self.logger.info('    {}'.format(line))
 			if not line.startswith('Total players online:'):
 				server_name = line.split('] (', 1)[0][1:]
 				player_list = set(line.split('): ')[-1].split(', '))
@@ -82,7 +82,7 @@ class OnlineChatClient(ChatBridgeClient):
 
 		counter_sorted = sorted([(key, value) for key, value in counter.items()], key=lambda x: x[0].upper())
 		player_set_all = set()
-		result: List[str] = ['Players in {} servers:'.format(len(counter_sorted))]
+		result: List[str] = ['Players in {} Minecraft servers:'.format(len(counter_sorted))]
 		for server_name, player_set in counter_sorted:
 			if player_set:
 				player_set_all.update(player_set)
@@ -105,6 +105,7 @@ def console_input_loop():
 				print('stop: stop the client')
 		except (KeyboardInterrupt, EOFError):
 			print('Interrupted')
+			break
 		except:
 			traceback.print_exc()
 
