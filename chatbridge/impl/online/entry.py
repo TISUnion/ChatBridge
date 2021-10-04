@@ -82,7 +82,7 @@ class OnlineChatClient(ChatBridgeClient):
 
 		counter_sorted = sorted([(key, value) for key, value in counter.items()], key=lambda x: x[0].upper())
 		player_set_all = set()
-		result: List[str] = ['Players in {} Minecraft servers:'.format(len(counter_sorted))]
+		result: List[str] = ['Players in {} Minecraft servers:'.format(len(list(filter(lambda i: i[1], counter_sorted))))]
 		for server_name, player_set in counter_sorted:
 			if player_set:
 				player_set_all.update(player_set)
