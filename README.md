@@ -77,7 +77,7 @@ python -m ChatBridge.pyz client
 
 Required MCDR >=2.2
 
-Just put the `.mcdr` file into the plugin folder
+Just put the `.pyz` file into the plugin folder
 
 Configure:
 
@@ -185,17 +185,31 @@ Extra configure fields (compared to CLI client)
 ## Client to respond online command
 
 ```
-python -m ChatBridge.pyz cqhttp_bot
+python -m ChatBridge.pyz online_command
+```
+
+Extra requirements (also listed in `/chatbridge/impl/online/requirements.txt`):
+
+```
+parse
 ```
 
 Extra configure fields (compared to CLI client)
 
 ```json5
+    "minecraft_list": [
+        {
+            "name": "survival",  // the name of the minecraft server (recommend value: the same as its name in bungeecord)
+            "address": "127.0.0.1",  // the address of the server rcon
+            "port": "25575",  // the port of the server rcon
+            "password": "Server Rcon Password"  // the password of the server rcon
+        }
+    ],
     "bungeecord_list": [
         {
             "name": "BungeecordA",  // the name of the bungeecord server (unused value)
             "address": "127.0.0.1",  // the address of the bungeecord rcon
-            "port": "3999",  // the port of the bungeecord rcon
+            "port": "39999",  // the port of the bungeecord rcon
             "password": "Bungee Rcon Password"  // the password of the bungeecord rcon
         }
     ]

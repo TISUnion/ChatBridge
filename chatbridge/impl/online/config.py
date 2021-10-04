@@ -5,7 +5,7 @@ from mcdreforged.utils.serializer import Serializable
 from chatbridge.core.config import ClientConfig
 
 
-class _Entry(Serializable):
+class RconEntry(Serializable):
 	name: str
 	address: str
 	port: int
@@ -13,11 +13,19 @@ class _Entry(Serializable):
 
 
 class OnlineConfig(ClientConfig):
-	bungeecord_list: List[_Entry] = [
-		_Entry(
+	server_list: List[RconEntry] = [
+		RconEntry(
+			name='survival',
+			address='127.0.0.1',
+			port=25575,
+			password='Server Rcon Password',
+		)
+	]
+	bungeecord_list: List[RconEntry] = [
+		RconEntry(
 			name='BungeecordA',
 			address='127.0.0.1',
-			port='3999',
+			port=39999,
 			password='Bungee Rcon Password',
 		)
 	]
