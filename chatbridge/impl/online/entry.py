@@ -103,6 +103,8 @@ def console_input_loop():
 			else:
 				print('online: show online status')
 				print('stop: stop the client')
+		except (KeyboardInterrupt, EOFError):
+			print('Interrupted')
 		except:
 			traceback.print_exc()
 
