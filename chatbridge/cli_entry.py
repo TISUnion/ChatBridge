@@ -44,7 +44,7 @@ def main():
 		else:
 			print('Unknown argument {}'.format(arg))
 	else:
-		prefix = 'python -m {}'.format(sys.argv[0])
+		prefix = 'python {}'.format(sys.argv[0])
 		print('{} client: Start a simple text-chatting-only ChatBridge client'.format(prefix))
 		print('{} server: Start the ChatBridge server'.format(prefix))
 		print('{} discord_bot: Start a Discord bot as client'.format(prefix))

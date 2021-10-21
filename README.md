@@ -29,7 +29,7 @@ But the basic chatbridge components are within the support range, including:
 
 ## Usage
 
-Enter `python -m ChatBridge.pyz` in command line to see possible helps
+Enter `python ChatBridge.pyz` in command line to see possible helps
 
 At launch, if the configure file is missing, chatbridge will automatically generate a default one and exit
 
@@ -48,7 +48,7 @@ colorlog
 ## CLI Server
 
 ```
-python -m ChatBridge.pyz server
+python ChatBridge.pyz server
 ```
 
 Configure:
@@ -70,7 +70,7 @@ Configure:
 ## CLI Client
 
 ```
-python -m ChatBridge.pyz client
+python ChatBridge.pyz client
 ```
 
 ## [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) plugin client
@@ -93,7 +93,7 @@ Configure:
 
 ## Discord bot client
 
-`python -m ChatBridge.pyz discord_bot`
+`python ChatBridge.pyz discord_bot`
 
 Extra requirements (also listed in `/chatbridge/impl/discord/requirements.txt`):
 
@@ -124,7 +124,7 @@ Extra configure fields (compared to CLI client)
 ## Client as a CoolqHttp client
 
 ```
-python -m ChatBridge.pyz cqhttp_bot
+python ChatBridge.pyz cqhttp_bot
 ```
 
 Extra requirements (also listed in `/chatbridge/impl/cqhttp/requirements.txt`):
@@ -158,7 +158,7 @@ Extra configure fields (compared to CLI client)
 
 ## Kaiheila bot client
 
-`python -m ChatBridge.pyz kaiheila_bot`
+`python ChatBridge.pyz kaiheila_bot`
 
 Extra requirements (also listed in `/chatbridge/impl/kaiheila/requirements.txt`):
 
@@ -185,7 +185,7 @@ Extra configure fields (compared to CLI client)
 ## Client to respond online command
 
 ```
-python -m ChatBridge.pyz online_command
+python ChatBridge.pyz online_command
 ```
 
 Extra requirements (also listed in `/chatbridge/impl/online/requirements.txt`):
