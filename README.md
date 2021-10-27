@@ -170,8 +170,8 @@ Extra configure fields (compared to CLI client)
 
 ```json5
     "client_id": "",  // kaiheila client id
-	"client_secret": "",  // kaiheila client secret
-	"token": "",  // kaiheila token
+    "client_secret": "",  // kaiheila client secret
+    "token": "",  // kaiheila token
     "channels_for_command": [  // a list of channels, public commands can be used here. use string
         "123400000000000000",
         "123450000000000000"
