@@ -76,7 +76,7 @@ class OnlineChatClient(ChatBridgeClient):
 		lock = Lock()
 		with ThreadPoolExecutor() as pool:
 			for server in config.server_list:
-				pool.submit(self.query_server, server, 'list', lambda data: self.handle_minecraft(updater, server, data))
+				pool.submit(self.query_server, server, 'list', lambda data, svr=server: self.handle_minecraft(updater, svr, data))
 			for server in config.bungeecord_list:
 				pool.submit(self.query_server, server, 'glist', lambda data: self.handle_bungee(updater, data))
 
