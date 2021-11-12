@@ -29,3 +29,7 @@ class OnlineConfig(ClientConfig):
 			password='Bungee Rcon Password',
 		)
 	]
+	display_order: List[str] = [
+		'survival',
+		'creative'
+	]

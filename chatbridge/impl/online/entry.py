@@ -2,10 +2,11 @@
 A specific client for responding !!online command for multiple bungeecord instances
 """
 import collections
+import functools
 import traceback
 from concurrent.futures.thread import ThreadPoolExecutor
 from threading import Lock
-from typing import List, Dict, Set, Callable, Collection, Any
+from typing import List, Dict, Set, Callable, Collection, Any, Tuple
 
 import parse
 from mcdreforged.api.rcon import RconConnection
@@ -68,6 +69,25 @@ class OnlineChatClient(ChatBridgeClient):
 					player_list.remove('')
 				updater(server_name, player_list)
 
+	@staticmethod
+	def server_comparator(item_a: Tuple[str, Any], item_b: Tuple[str, Any]) -> int:
+		def get_index(name: str) -> int:
+			try:
+				return config.display_order.index(name)
+			except ValueError:
+				return len(config.display_order)
+
+		name_a: str = item_a[0]
+		name_b: str = item_b[0]
+		order_a = get_index(name_a)
+		order_b = get_index(name_b)
+		if order_a > order_b:
+			return 1
+		elif order_a < order_b:
+			return -1
+		else:
+			return int(name_a.upper() > name_b.upper()) - int(name_a.upper() < name_b.upper())
+
 	def query(self) -> List[str]:
 		def updater(name: str, players: Collection[str]):
 			with lock:
@@ -80,7 +100,7 @@ class OnlineChatClient(ChatBridgeClient):
 			for server in config.bungeecord_list:
 				pool.submit(self.query_server, server, 'glist', lambda data: self.handle_bungee(updater, data))
 
-		counter_sorted = sorted([(key, value) for key, value in counter.items()], key=lambda x: x[0].upper())
+		counter_sorted = sorted([(key, value) for key, value in counter.items()], key=functools.cmp_to_key(self.server_comparator))
 		player_set_all = set()
 		result: List[str] = ['Players in {} Minecraft servers:'.format(len(list(filter(lambda i: i[1], counter_sorted))))]
 		for server_name, player_set in counter_sorted:

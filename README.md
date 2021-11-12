@@ -212,6 +212,12 @@ Extra configure fields (compared to CLI client)
             "port": "39999",  // the port of the bungeecord rcon
             "password": "Bungee Rcon Password"  // the password of the bungeecord rcon
         }
+    ],
+    // The display order of the servers, optional
+    // Servers not in the list will be thrown to the tail of the result and sorted in alphabetical order
+    "display_order": [  
+        "survival",  // Values are server names
+        "creative"
     ]
 ```
 
