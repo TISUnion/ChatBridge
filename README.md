@@ -214,3 +214,8 @@ Extra configure fields (compared to CLI client)
         }
     ]
 ```
+
+CLI commands
+
+- `online`, `!!online`: Display the current online players, mostly for testing
+- `stop`: Stop the client
