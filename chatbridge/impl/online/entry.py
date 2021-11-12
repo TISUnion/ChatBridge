@@ -36,7 +36,7 @@ class OnlineChatClient(ChatBridgeClient):
 			if not respond:
 				self.logger.warning('Rcon command not respond')
 				return
-			self.logger.info('Respond received: {}'.format(repr(respond)))
+			self.logger.info('Respond received from {}: {}'.format(server.name, repr(respond)))
 			result_handler(respond)
 		except:
 			self.logger.exception('Error when querying {}'.format(server.name))
