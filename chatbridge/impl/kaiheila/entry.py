@@ -33,6 +33,7 @@ class KaiHeiLaConfig(ClientConfig):
 	command_prefix: str = '!!'
 	client_to_query_stats: str = 'MyClient1'
 	client_to_query_online: str = 'MyClient2'
+	server_display_name: str = 'TIS'
 
 
 class MessageDataType:
@@ -98,7 +99,7 @@ class KaiHeiLaBot(Bot):
 				else:
 					self.logger.debug('Unknown messageData type {}'.format(message_data.data))
 		except:
-			self.logger.exception('Error looping discord bot')
+			self.logger.exception('Error looping khl bot')
 
 	async def on_ready(self):
 		id_ = await self.id()
@@ -213,7 +214,7 @@ class KhlChatBridgeClient(ChatBridgeClient):
 				khlBot.add_message(message, channel_id, MessageDataType.TEXT)
 		elif payload.command == '!!online':
 			result = OnlineQueryResult.deserialize(payload.result)
-			khlBot.add_embed('TIS Online players', '\n'.join(result.data), channel_id)
+			khlBot.add_embed('{} online players'.format(config.server_display_name), '\n'.join(result.data), channel_id)
 
 
 def main():

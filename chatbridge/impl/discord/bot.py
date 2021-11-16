@@ -125,7 +125,7 @@ class DiscordBot(commands.Bot):
 				embed = discord.Embed(color=discord.Colour.blue())
 				embed.set_author(name='Statistic Rank', icon_url=self.config.embed_icon_url)
 				rank = [line.split(' ')[0] for line in msg.splitlines()]
-				player = [line.split(' ')[1] for line in msg.splitlines()]
+				player = [self.format_message_text(line.split(' ')[1]) for line in msg.splitlines()]
 				value = [bot_util.process_number(line.split(' ')[2]) for line in msg.splitlines()]
 				embed.add_field(name='Stats name', value=stats_name, inline=False)
 				embed.add_field(name='Rank', value='\n'.join(rank))

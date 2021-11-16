@@ -30,4 +30,4 @@ class DiscordChatClient(ChatBridgeClient):
 				bot.add_message(message, channel_id, MessageDataType.TEXT)
 		elif payload.command == '!!online':
 			result = OnlineQueryResult.deserialize(payload.result)
-			bot.add_embed('TIS Online players', 'Player list', '\n'.join(result.data), channel_id)
+			bot.add_embed('{} online players'.format(stored.config.server_display_name), 'Player list', '\n'.join(result.data), channel_id)

@@ -153,7 +153,8 @@ Extra configure fields (compared to CLI client)
     "access_token": "access_token.here",
     "react_group_id": 12345,  // the target QQ group id
     "client_to_query_stats": "MyClient1",  // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
-    "client_to_query_online": "MyClient2"  // a client described in the following section "Client to respond online command"
+    "client_to_query_online": "MyClient2",  // a client described in the following section "Client to respond online command"
+    "server_display_name": "TIS"  // The name of the server, used for display in some places
 ```
 
 ## Kaiheila bot client
@@ -179,7 +180,8 @@ Extra configure fields (compared to CLI client)
     "channel_for_chat": "123400000000000000",  // the channel for chatting and private commands. use string
     "command_prefix": "!!",
     "client_to_query_stats": "MyClient1",  // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
-    "client_to_query_online": "MyClient2"  // a client described in the following section "Client to respond online command"
+    "client_to_query_online": "MyClient2",  // a client described in the following section "Client to respond online command"
+    "server_display_name": "TIS"  // The name of the server, used for display in some places
 ```
 
 ## Client to respond online command

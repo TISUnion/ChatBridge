@@ -14,3 +14,4 @@ class DiscordConfig(ClientConfig):
 	client_to_query_stats: str = 'MyClient1'
 	client_to_query_online: str = 'MyClient2'
 	embed_icon_url = 'https://cdn.discordapp.com/emojis/566212479487836160.png'
+	server_display_name: str = 'TIS'
