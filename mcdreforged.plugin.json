@@ -1,6 +1,6 @@
 {
     "id": "chatbridge",
-    "version": "2.0.4",
+    "version": "2.0.5",
     "name": "ChatBridge v2 for MCDR",
     "description": {
 		"en_us": "Broadcast chats between Minecraft servers and more",
