@@ -11,14 +11,19 @@ T = TypeVar('T', BasicConfig, BasicConfig)
 
 
 def load_config(config_path: str, config_class: Type[T]) -> T:
+	config = config_class.get_default()
 	if not os.path.isfile(config_path):
 		print('Configure file not found!'.format(config_path))
-		with open(config_path, 'w') as file:
-			json.dump(config_class.get_default().serialize(), file, ensure_ascii=False, indent=4)
+		with open(config_path, 'w', encoding='utf8') as file:
+			json.dump(config.serialize(), file, ensure_ascii=False, indent=4)
 		print('Default example configure generated'.format(config_path))
 		raise FileNotFoundError(config_path)
-	with open(config_path) as file:
-		return config_class.deserialize(json.load(file))
+	else:
+		with open(config_path, encoding='utf8') as file:
+			config.update_from(json.load(file))
+		with open(config_path, 'w', encoding='utf8') as file:
+			json.dump(config.serialize(), file, ensure_ascii=False, indent=4)
+		return config
 
 
 def start_guardian(client: ChatBridgeClient, wait_time: float = 10, loop_condition: Callable[[], bool] = lambda: True) -> Thread:
