@@ -104,6 +104,16 @@ class ChatBridgeServer(ChatBridgeBase):
 			while self.is_running():
 				try:
 					conn, addr = self.__sock.accept()
+
+					all_online = True
+					for c in self.clients.values():
+						if not c.is_online():
+							all_online = False
+							break
+					if all_online:
+						conn.close()
+						continue
+
 					if not self.is_running():
 						conn.close()
 						break
