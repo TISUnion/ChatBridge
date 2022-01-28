@@ -34,6 +34,9 @@ def kaiheila_bot():
 	from chatbridge.impl.kaiheila import entry
 	entry.main()
 
+def installer():
+	from chatbridge.impl.installer import install_manager
+	install_manager.install()
 
 def main():
 	if len(sys.argv) == 2:
@@ -51,4 +54,4 @@ def main():
 		print('{} cqhttp_bot: Start a CQ-Http bot as client'.format(prefix))
 		print('{} kaiheila_bot: Start a Kaiheila bot as client'.format(prefix))
 		print('{} online_command: Start a CQ-Http bot as client'.format(prefix))
-
+		print('{} installer: Simple installer'.format(prefix))
