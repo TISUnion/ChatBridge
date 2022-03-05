@@ -4,7 +4,7 @@ CommandHelpMessage = '''
 '''.strip()
 
 # For chat channel, with full permission
-CommandHelpMessageAll = CommandHelpMessage + '''
+CommandHelpMessageAll = CommandHelpMessage + '\n' + '''
 `!!online`: Show player list in online proxy
 `!!qq <message>`: Send message `<message>` to QQ group
 '''.strip()
