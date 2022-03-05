@@ -153,6 +153,7 @@ Extra configure fields (compared to CLI client)
 `ws_address`, `ws_port` and `access_token` are the same as the value in the config file of coolq-http-api
 
 ```json5
+{
     "ws_address": "127.0.0.1",
     "ws_port": 6700,
     "access_token": "access_token.here",
@@ -160,6 +161,7 @@ Extra configure fields (compared to CLI client)
     "client_to_query_stats": "MyClient1",  // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
     "client_to_query_online": "MyClient2",  // a client described in the following section "Client to respond online command"
     "server_display_name": "TIS"  // The name of the server, used for display in some places
+}
 ```
 
 ## Kaiheila bot client
@@ -175,6 +177,7 @@ khl.py==0.0.10
 Extra configure fields (compared to CLI client)
 
 ```json5
+{
     "client_id": "",  // kaiheila client id
     "client_secret": "",  // kaiheila client secret
     "token": "",  // kaiheila token
@@ -187,6 +190,7 @@ Extra configure fields (compared to CLI client)
     "client_to_query_stats": "MyClient1",  // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
     "client_to_query_online": "MyClient2",  // a client described in the following section "Client to respond online command"
     "server_display_name": "TIS"  // The name of the server, used for display in some places
+}
 ```
 
 ## Client to respond online command
@@ -204,6 +208,7 @@ parse
 Extra configure fields (compared to CLI client)
 
 ```json5
+{
     "minecraft_list": [
         {
             "name": "survival",  // the name of the minecraft server (recommend value: the same as its name in bungeecord)
@@ -226,6 +231,7 @@ Extra configure fields (compared to CLI client)
         "survival",  // Values are server names
         "creative"
     ]
+}
 ```
 
 CLI commands
