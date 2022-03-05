@@ -110,7 +110,7 @@ class DiscordBot(commands.Bot):
 		self.messages.put(MessageData(data=data, channel=channel_id, type=t))
 
 	def add_embed(self, title: str, message_title: str, message: str, channel_id: int):
-		embed = discord.Embed(color=discord.Colour.blue())
+		embed = discord.Embed(color=self.config.embed_color)
 		embed.set_author(name=title, icon_url=self.config.embed_icon_url)
 		embed.add_field(name=message_title, value=message)
 		self.add_message(embed, channel_id, MessageDataType.EMBED)
@@ -122,7 +122,7 @@ class DiscordBot(commands.Bot):
 			msg += line
 			length += len(line)
 			if i == len(rank_lines) - 1 or length + len(rank_lines[i + 1]) > 1024:
-				embed = discord.Embed(color=discord.Colour.blue())
+				embed = discord.Embed(color=self.config.embed_color)
 				embed.set_author(name='Statistic Rank', icon_url=self.config.embed_icon_url)
 				rank = [line.split(' ')[0] for line in msg.splitlines()]
 				player = [self.format_message_text(line.split(' ')[1]) for line in msg.splitlines()]

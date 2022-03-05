@@ -104,15 +104,20 @@ discord.py
 Extra configure fields (compared to CLI client)
 
 ```json5
-    "bot_token": "your.bot.token.here",  // the token of your discord bot
-    "channels_for_command": [  // a list of channels, public commands can be used here
-        123400000000000000,
-        123450000000000000
+{
+    "bot_token": "your.bot.token.here", // the token of your discord bot
+    "channels_for_command": [ // a list of channels, public commands can be used here
+      123400000000000000,
+      123450000000000000
     ],
-    "channel_for_chat": 123400000000000000,  // the channel for chatting and private commands
+    "channel_for_chat": 123400000000000000, // the channel for chatting and private commands
     "command_prefix": "!!",
-    "client_to_query_stats": "MyClient1",  // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
-    "client_to_query_online": "MyClient2"  // a client described in the following section "Client to respond online command"
+    "client_to_query_stats": "MyClient1", // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
+    "client_to_query_online": "MyClient2", // a client described in the following section "Client to respond online command"
+    "embed_color": 3447003, // the embed color to display (hexa to int)
+    "embed_icon_url": "your.server.logo.url.here", // the server logo url
+    "server_display_name": "your.server.name.here" // the server name
+}
 ```
 
 ### Commands
