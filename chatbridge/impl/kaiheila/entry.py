@@ -11,7 +11,7 @@ from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.config import ClientConfig
 from chatbridge.core.network.protocol import ChatPayload, CommandPayload
 from chatbridge.impl import utils
-from chatbridge.impl.kaiheila.helps import StatsCommandHelpMessage
+from chatbridge.impl.kaiheila.helps import StatsCommandHelpMessage, CommandHelpMessageAll, CommandHelpMessage
 from chatbridge.impl.tis import bot_util
 from chatbridge.impl.tis.protocol import OnlineQueryResult, StatsQueryResult
 
@@ -158,6 +158,15 @@ class KaiHeiLaBot(Bot):
 
 def createKaiHeiLaBot() -> KaiHeiLaBot:
 	bot = KaiHeiLaBot(config)
+
+	@bot.command()
+	async def help(msg: Msg):
+		if msg.ctx.channel.id in bot.config.channels_for_command:
+			if msg.ctx.channel.id == bot.config.channel_for_chat:
+				text = CommandHelpMessageAll
+			else:
+				text = CommandHelpMessage
+			await msg.reply(text)
 
 	@bot.command()
 	async def ping(msg: Msg):

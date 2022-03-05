@@ -4,7 +4,7 @@ CommandHelpMessage = '''
 '''.strip()
 
 # For chat channel, with full permission
-CommandHelpMessageAll = CommandHelpMessage + '''
+CommandHelpMessageAll = CommandHelpMessage + '\n' + '''
 `!!online`: 显示服务器玩家在线状态
 '''.strip()
 
