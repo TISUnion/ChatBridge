@@ -73,12 +73,6 @@ Configure:
 python ChatBridge.pyz client
 ```
 
-## [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) plugin client
-
-Required MCDR >=2.2
-
-Just put the `.pyz` file into the plugin folder
-
 Configure:
 
 ```json5
@@ -91,6 +85,18 @@ Configure:
 }
 ```
 
+## [MCDReforged](https://github.com/Fallen-Breath/MCDReforged) plugin client
+
+Required MCDR >=2.2
+
+Just put the `.pyz` file into the plugin folder
+
+Extra configure fields (compared to [CLI client](#cli-client))
+
+```json5
+    "debug": false,  // for switching debug logging on
+```
+
 ## Discord bot client
 
 `python ChatBridge.pyz discord_bot`
@@ -101,7 +107,7 @@ Extra requirements (also listed in `/chatbridge/impl/discord/requirements.txt`):
 discord.py
 ```
 
-Extra configure fields (compared to CLI client)
+Extra configure fields (compared to [CLI client](#cli-client))
 
 ```json5
     "bot_token": "your.bot.token.here",  // the token of your discord bot
@@ -143,7 +149,7 @@ Due to lack of channel division in QQ group (not like discord), to prevent messa
 
 Type `!!help` in QQ for more help
 
-Extra configure fields (compared to CLI client)
+Extra configure fields (compared to [CLI client](#cli-client))
 
 `ws_address`, `ws_port` and `access_token` are the same as the value in the config file of coolq-http-api
 
@@ -167,7 +173,7 @@ Extra requirements (also listed in `/chatbridge/impl/kaiheila/requirements.txt`)
 khl.py==0.0.10
 ```
 
-Extra configure fields (compared to CLI client)
+Extra configure fields (compared to [CLI client](#cli-client))
 
 ```json5
     "client_id": "",  // kaiheila client id
@@ -196,7 +202,7 @@ Extra requirements (also listed in `/chatbridge/impl/online/requirements.txt`):
 parse
 ```
 
-Extra configure fields (compared to CLI client)
+Extra configure fields (compared to [CLI client](#cli-client))
 
 ```json5
     "minecraft_list": [
