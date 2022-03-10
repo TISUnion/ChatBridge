@@ -24,12 +24,10 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 	def get_logging_name(self) -> str:
 		return 'ChatBridge@{}'.format(hex((id(self) >> 16) & (id(self) & 0xFFFF))[2:].rjust(4, '0'))
 
-	@classmethod
-	def _get_main_loop_thread_name(cls):
+	def _get_main_loop_thread_name(self):
 		return 'ChatBridge-' + super()._get_main_loop_thread_name()
 
-	@classmethod
-	def _get_keep_alive_thread_name(cls):
+	def _get_keep_alive_thread_name(self):
 		return 'ChatBridge-' + super()._get_keep_alive_thread_name()
 
 	def _on_stopped(self):

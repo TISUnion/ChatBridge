@@ -1,8 +1,9 @@
 import json
 import socket
+import time
 from concurrent.futures.thread import ThreadPoolExecutor
-from threading import Thread, Event, RLock
-from typing import Dict, Optional
+from threading import Thread, Event, RLock, Lock, current_thread
+from typing import Dict, Optional, List, NamedTuple
 
 from chatbridge.common import constants
 from chatbridge.core.client import ChatBridgeClient, ClientStatus
@@ -22,6 +23,12 @@ class _ClientConnection(ChatBridgeClient):
 
 	def get_logging_name(self) -> str:
 		return 'Server.{}'.format(self.get_connection_client_name())
+
+	def _get_main_loop_thread_name(self):
+		return super()._get_main_loop_thread_name() + '.' + self.get_connection_client_name()
+
+	def _get_keep_alive_thread_name(self):
+		return super()._get_main_loop_thread_name() + '.' + self.get_connection_client_name()
 
 	def get_logging_file_name(self) -> Optional[str]:
 		return None
@@ -66,11 +73,26 @@ class _ClientConnection(ChatBridgeClient):
 		self.start()
 
 
+class ComingConnection(NamedTuple):
+	sock: socket.socket
+	addr: Address
+	thread: Thread
+	start_time: float
+
+	@classmethod
+	def create(cls, sock: socket.socket, addr: Address) -> 'ComingConnection':
+		return ComingConnection(sock=sock, addr=addr, thread=current_thread(), start_time=time.time())
+
+
 class ChatBridgeServer(ChatBridgeBase):
+	MAXIMUM_LOGIN_DURATION = 20  # 20s
+
 	def __init__(self, aes_key: str, server_address: Address):
 		super().__init__('Server', aes_key)
 		self.server_address = server_address
 		self.clients: Dict[str, _ClientConnection] = {}
+		self.__coming_connections: List[ComingConnection] = []
+		self.__coming_connections_lock = Lock()
 		self.__sock: Optional[socket.socket] = None
 		self.__thread_run: Optional[Thread] = None
 		self.__stop_lock = RLock()
@@ -99,11 +121,16 @@ class ChatBridgeServer(ChatBridgeBase):
 			self.__binding_done.set()
 		try:
 			self.__sock.listen(5)
+			self.__sock.settimeout(3)
 			self.logger.info('Server started at {}'.format(self.server_address))
 			counter = 0
 			while self.is_running():
 				try:
-					conn, addr = self.__sock.accept()
+					self.__trim_coming_connections()
+					try:
+						conn, addr = self.__sock.accept()
+					except socket.timeout:
+						continue
 					if not self.is_running():
 						conn.close()
 						break
@@ -145,29 +172,54 @@ class ChatBridgeServer(ChatBridgeBase):
 		self.__stop()
 		super().stop()
 
+	def __trim_coming_connections(self):
+		with self.__coming_connections_lock:
+			to_be_removed = []
+			current_time = time.time()
+			for cc in self.__coming_connections:
+				if current_time - cc.start_time > self.MAXIMUM_LOGIN_DURATION:
+					self.logger.warning('Terminating coming connection from {} in thread {} due to login timeout'.format(cc.addr, cc.thread.getName()))
+					try:
+						cc.sock.close()
+					except:
+						self.logger.exception('Error terminating coming connection from {} in thread {}'.format(cc.addr, cc.thread.getName()))
+					to_be_removed.append(cc)
+			for cc in to_be_removed:
+				self.__coming_connections.remove(cc)
+
 	def __handle_connection(self, conn: socket, addr: Address):
 		success = False
+		cc = ComingConnection.create(conn, addr)
+		with self.__coming_connections_lock:
+			self.__coming_connections.append(cc)
 		try:
-			recv_str = net_util.receive_data(conn, self._cryptor, timeout=15)
-			login_packet = LoginPacket.deserialize(json.loads(recv_str))
-		except Exception as e:
-			self.logger.error('Failed reading client\'s login packet: {}'.format(e))
-			return
-		else:
-			self.log_packet(login_packet, to_client=False)
-			client = self.clients.get(login_packet.name, None)
-			if client is not None:
-				if client.info.password == login_packet.password:
-					success = True
-					self.logger.info('Identification of {} confirmed: {}'.format(addr, client.info.name))
-					client.restart_connection(conn, addr)
-				else:
-					self.logger.warning('Wrong password during login for client {}: expected {} but received {}'.format(client.info.name, client.info.password, login_packet.password))
+			try:
+				recv_str = net_util.receive_data(conn, self._cryptor, timeout=15)
+				login_packet = LoginPacket.deserialize(json.loads(recv_str))
+			except Exception as e:
+				self.logger.error('Failed reading client\'s login packet: {}'.format(e))
+				return
 			else:
-				self.logger.warning('Unknown client name during login: {}'.format(login_packet.name))
-		if not success:
-			conn.close()
-			self.logger.warning('Closed connection from {}'.format(addr))
+				self.log_packet(login_packet, to_client=False)
+				client = self.clients.get(login_packet.name, None)
+				if client is not None:
+					if client.info.password == login_packet.password:
+						success = True
+						self.logger.info('Identification of {} confirmed: {}'.format(addr, client.info.name))
+						client.restart_connection(conn, addr)
+					else:
+						self.logger.warning('Wrong password during login for client {}: expected {} but received {}'.format(client.info.name, client.info.password, login_packet.password))
+				else:
+					self.logger.warning('Unknown client name during login: {}'.format(login_packet.name))
+			if not success:
+				conn.close()
+				self.logger.warning('Closed connection from {}'.format(addr))
+		finally:
+			with self.__coming_connections_lock:
+				try:
+					self.__coming_connections.remove(cc)
+				except ValueError:
+					pass
 
 	def log_packet(self, packet: AbstractPacket, *, to_client: bool, client_name: str = None):
 		if isinstance(packet, ChatBridgePacket):

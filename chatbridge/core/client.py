@@ -317,8 +317,7 @@ class ChatBridgeClient(ChatBridgeBase):
 	#   Keep Alive
 	# --------------
 
-	@classmethod
-	def _get_keep_alive_thread_name(cls):
+	def _get_keep_alive_thread_name(self):
 		return 'KeepAlive'
 
 	def _start_keep_alive_thread(self) -> Thread:

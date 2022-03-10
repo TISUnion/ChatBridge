@@ -1,5 +1,5 @@
 from threading import Thread, current_thread, RLock
-from typing import NamedTuple, Callable, List, Optional
+from typing import NamedTuple, Callable, Optional
 
 from chatbridge.common.logger import ChatBridgeLogger
 from chatbridge.core.network.cryptor import AESCryptor
@@ -41,7 +41,6 @@ class ChatBridgeBase:
 		self.logger.debug('Started thread {}: {}'.format(name, thread))
 		return thread
 
-	@classmethod
 	def _get_main_loop_thread_name(cls):
 		return 'MainLoop'
 
