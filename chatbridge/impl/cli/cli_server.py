@@ -1,4 +1,6 @@
+import threading
 import time
+import traceback
 
 from chatbridge.core.config import ServerConfig
 from chatbridge.core.network.basic import Address
@@ -15,6 +17,19 @@ class CLIServerConfig(ServerConfig):
 config: CLIServerConfig
 ConfigFile = 'ChatBridge_server.json'
 CHAT_LOGGING_FILE = 'chat.log'
+
+
+def thread_dump() -> str:
+	from sys import _current_frames
+	lines = []
+	name_map = dict([(thread.ident, thread.name) for thread in threading.enumerate()])
+	for thread_id, stack in _current_frames().items():
+		lines.append("# Thread {} ({})".format(name_map.get(thread_id, 'unknown'), thread_id))
+		for filename, lineno, name, line in traceback.extract_stack(stack):
+			lines.append('  File "{}", line {}, in {}'.format(filename, lineno, name))
+			if line:
+				lines.append('    {}'.format(line.strip()))
+	return '\n'.join(lines)
 
 
 class CLIServer(ChatBridgeServer):
@@ -52,6 +67,8 @@ class CLIServer(ChatBridgeServer):
 			elif text == 'debug off':
 				self.logger.set_debug_all(False)
 				self.logger.info('Debug logging off')
+			elif text == 'thread_dump':
+				self.logger.info(thread_dump())
 			else:
 				self.logger.info('stop": stop the server')
 				self.logger.info('stop <client_name>": stop a client')
