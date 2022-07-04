@@ -82,7 +82,7 @@ def main():
 	address = Address(config.hostname, config.port)
 	print('AES Key = {}'.format(config.aes_key))
 	print('Server address = {}'.format(address))
-	server = CLIServer(config.aes_key, address)
+	server = CLIServer(config.aes_key, address, config.allow_reuse_address)
 	for i, client_info in enumerate(config.clients):
 		print('- Client #{}: name = {}, password = {}'.format(i + 1, client_info.name, client_info.password))
 		server.add_client(client_info)

@@ -37,3 +37,4 @@ class ServerConfig(BasicConfig):
 	clients: List[ClientInfo] = [
 		ClientInfo(name='MyClientName', password='MyClientPassword')
 	]
+	allow_reuse_address: bool = True

@@ -87,10 +87,11 @@ class ComingConnection(NamedTuple):
 class ChatBridgeServer(ChatBridgeBase):
 	MAXIMUM_LOGIN_DURATION = 20  # 20s
 
-	def __init__(self, aes_key: str, server_address: Address):
+	def __init__(self, aes_key: str, server_address: Address, allow_reuse_address: bool = False):
 		super().__init__('Server', aes_key)
 		self.server_address = server_address
 		self.clients: Dict[str, _ClientConnection] = {}
+		self.__allow_reuse_address = allow_reuse_address
 		self.__coming_connections: List[ComingConnection] = []
 		self.__coming_connections_lock = Lock()
 		self.__sock: Optional[socket.socket] = None
@@ -111,6 +112,8 @@ class ChatBridgeServer(ChatBridgeBase):
 
 	def _main_loop(self):
 		self.__sock = socket.socket()
+		if (self.__allow_reuse_address):
+			self.__sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 		try:
 			self.__sock.bind(self.server_address)
 		except:
