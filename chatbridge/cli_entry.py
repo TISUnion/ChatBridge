@@ -34,6 +34,7 @@ def kaiheila_bot():
 	from chatbridge.impl.kaiheila import entry
 	entry.main()
 
+
 def main():
 	if len(sys.argv) == 2:
 		arg = sys.argv[1]
