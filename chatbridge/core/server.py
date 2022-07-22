@@ -111,7 +111,7 @@ class ChatBridgeServer(ChatBridgeBase):
 
 	def _main_loop(self):
 		self.__sock = socket.socket()
-		self.__sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+		self.__sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		try:
 			self.__sock.bind(self.server_address)
 		except:
