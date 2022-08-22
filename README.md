@@ -10,13 +10,12 @@ flowchart LR
     mcdr1("ChatBridge Client (MCDR plugin)")<--MCDR-->smp[Minecraft Surival Server]
     mcdr2("ChatBridge Client (MCDR plugin)")<--MCDR-->cmp[Minecraft Creative Server]
     mcdr3("ChatBridge Client (MCDR plugin)")<--MCDR-->smpc[Minecraft Mirror Server]
+    online("ChatBridge Online Command Client")<--RCON-->bc[Bungeecord Server]
     end
     
     server(["ChatBridge Server"])
-    server<-->mcdr1
-    server<-->mcdr2
-    server<-->mcdr3
-    server<-->cli_client("CLI Client")<--->user[/User/]
+    server<-->mcdr1 & mcdr2 & mcdr3 & online
+    server<-->cli_client("CLI Client")<-.->user[/User/]
     server<-->cq_client("ChatBridge CQHttp Client")<-->cqhttp[CQ Http bot]-.-QQ
     server<-->khl_client("ChatBridge Khl Client")<-->khl["Kaiheila (Kook)"]
     server<-->discord_client("ChatBridge Discord Client")<-->Discord
