@@ -4,7 +4,23 @@
 
 See [here](https://github.com/TISUnion/ChatBridge/tree/v1) for chatbridge v1. **NOT compatible with Chatbridge v1**
 
-![topomap](https://raw.githubusercontent.com/TISUnion/ChatBridge/master/topomap.png)
+```mermaid
+flowchart LR
+    subgraph Minecraft Host
+    mcdr1("ChatBridge Client (MCDR plugin)")<--MCDR-->smp[Minecraft Surival Server]
+    mcdr2("ChatBridge Client (MCDR plugin)")<--MCDR-->cmp[Minecraft Creative Server]
+    mcdr3("ChatBridge Client (MCDR plugin)")<--MCDR-->smpc[Minecraft Mirror Server]
+    end
+    
+    server(["ChatBridge Server"])
+    server<-->mcdr1
+    server<-->mcdr2
+    server<-->mcdr3
+    server<-->cli_client("CLI Client")<--->user[/User/]
+    server<-->cq_client("ChatBridge CQHttp Client")<-->cqhttp[CQ Http bot]-.-QQ
+    server<-->khl_client("ChatBridge Khl Client")<-->khl["Kaiheila (Kook)"]
+    server<-->discord_client("ChatBridge Discord Client")<-->Discord
+```
 
 ## Disclaimer
 
