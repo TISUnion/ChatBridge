@@ -151,7 +151,10 @@ class DiscordBot(commands.Bot):
 
 def create_bot() -> DiscordBot:
 	config = stored.config
-	bot = DiscordBot(config.command_prefix)
+
+	intents = discord.Intents.default()
+	intents.message_content = True
+	bot = DiscordBot(config.command_prefix, intents=intents)
 
 	# noinspection PyShadowingBuiltins
 	@bot.command()

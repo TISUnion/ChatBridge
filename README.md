@@ -119,7 +119,7 @@ Extra configure fields (compared to [CLI client](#cli-client))
 Extra requirements (also listed in `/chatbridge/impl/discord/requirements.txt`):
 
 ```
-discord.py
+discord.py>=2.0.0
 ```
 
 Extra configure fields (compared to [CLI client](#cli-client))
