@@ -30,10 +30,10 @@ ChatBridge is mainly for custom use of TIS server, especially the bot/command co
 - Kaiheila client
 - Online command client
 
-Therefore for these bot and related clients:
+Therefore, for these bot and related clients:
 
 - Expect hardcoded constants in codes and lack of document/usage/support
-- PRs for features will not be accepted, related issues will probably be ignored
+- PRs for features will not be accepted, issues complaining something don't work will probably be ignored. No after-sales support
 - If you want more features, fork this repository and implement them yourself
 
 But the basic chatbridge components are within the support range, including:
@@ -41,6 +41,27 @@ But the basic chatbridge components are within the support range, including:
 - CLI client
 - CLI server
 - MCDR plugin 
+
+## 免责声明
+
+ChatBridge 是一个为 TIS 服务器定制使用的工具，尤其是 bot/指令相关的组件：
+
+- CQHttp 客户端
+- Discord 客户端
+- Kaiheila 客户端
+- Online 指令客户端
+
+因此，对于这些 bot 及相关的客户端：
+
+- 代码中将会包含若干硬编码常量，缺乏相关的文档/用法等支持
+- 功能方面的 PR 不会被接受，相关的 issue 大概率会被忽略，没有售后
+- 如果你想要更多的功能，建议你去 fork 这个仓库，然后自己实现
+
+但基本的 ChatBridge 组件都是在支持范围内，这包括：
+
+- CLI 客户端
+- CLI 服务端
+- MCDR 插件 
 
 ## Usage
 
