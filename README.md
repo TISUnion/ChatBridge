@@ -1,3 +1,7 @@
+# Forked
+This version of ChatBridge is only fork and add a simple installer. 
+
+
 # ChatBridge
 
 > Broadcast chat between Minecraft servers or even discord server
@@ -80,6 +84,10 @@ mcdreforged>=2.2.0
 pycryptodome
 colorlog
 ```
+## Installer
+Just execute `python ChatBridge.pyz installer` or `python3 ChatBridge.pyz installer` in the terminal
+Follow the instruction [Video of installation](https://youtu.be/7Px4BQ36ZxE)
+Is pretty easy using this, anyway you can ask me on discord: luisch444#3512
 
 ## CLI Server
 
