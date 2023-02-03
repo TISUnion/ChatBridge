@@ -81,6 +81,12 @@ def on_load(server: PluginServerInterface, old_module):
 	except:
 		server.logger.exception('Failed to read the config file! ChatBridge might not work properly')
 		server.logger.error('Fix the configure file and then reload the plugin')
+		config.enable = False
+
+	if not config.enable:
+		server.logger.info('ChatBridge is disabled')
+		return
+
 	client = ChatBridgeMCDRClient(config, server)
 	if config.debug:
 		client.logger.set_debug_all(True)

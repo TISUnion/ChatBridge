@@ -130,6 +130,7 @@ Just put the `.pyz` file into the plugin folder
 Extra configure fields (compared to [CLI client](#cli-client))
 
 ```json5
+    "enable": true,  // for switching the functionality of the chatbridge plugin
     "debug": false,  // for switching debug logging on
 ```
 
