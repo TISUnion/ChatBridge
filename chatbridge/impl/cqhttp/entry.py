@@ -51,7 +51,7 @@ class CQBot(websocket.WebSocketApp):
 			if chatClient is None:
 				return
 			data = json.loads(message)
-			if data['post_type'] == 'message' and data['message_type'] == 'group':
+			if data.get('post_type') == 'message' and data.get('message_type') == 'group':
 				if data['anonymous'] is None and data['group_id'] == self.config.react_group_id:
 					self.logger.info('QQ chat message: {}'.format(data))
 					args = data['raw_message'].split(' ')
