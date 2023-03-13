@@ -58,7 +58,7 @@ def send_chat(message: str, *, author: str = ''):
 			if not client.is_running():
 				client.start()
 			if client.is_online():
-				client.send_chat(message, author)
+				client.broadcast_chat(message, author)
 
 
 def on_load(server: PluginServerInterface, old_module):

@@ -33,7 +33,7 @@ class CLIClient(ChatBridgeClient):
 				self.logger.info('restart: restart the client')
 				self.logger.info('ping: display ping')
 			else:
-				self.send_chat(text)
+				self.broadcast_chat(text)
 
 
 def main():

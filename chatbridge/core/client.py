@@ -15,7 +15,7 @@ from chatbridge.core.config import ClientInfo, ClientConfig
 from chatbridge.core.network import net_util
 from chatbridge.core.network.basic import ChatBridgeBase, Address
 from chatbridge.core.network.protocol import ChatBridgePacket, PacketType, AbstractPacket, ChatPayload, \
-	KeepAlivePayload, AbstractPayload, CommandPayload
+	KeepAlivePayload, AbstractPayload, CommandPayload, CustomPayload
 from chatbridge.core.network.protocol import LoginPacket, LoginResultPacket
 
 
@@ -234,9 +234,9 @@ class ChatBridgeClient(ChatBridgeBase):
 		self.__thread_keep_alive.join()
 		self.logger.debug('Joined keep alive thread')
 
-	# ----------------
-	#   Packet Logic
-	# ----------------
+	# ---------------------
+	#   Packet core logic
+	# ---------------------
 
 	def _send_packet(self, packet: AbstractPacket):
 		if self._is_connected():
@@ -279,13 +279,22 @@ class ChatBridgeClient(ChatBridgeBase):
 	def send_to_all(self, type_: str, payload: AbstractPayload):
 		self.__build_and_send_packet(type_, [], payload, is_broadcast=True)
 
+	# -------------------------
+	#      Packet handlers
+	# -------------------------
+
 	def _on_packet(self, packet: ChatBridgePacket):
+		"""
+		A dispatcher that dispatch the packet based on packet type
+		"""
 		if packet.type == PacketType.keep_alive:
 			self._on_keep_alive(packet.sender, KeepAlivePayload.deserialize(packet.payload))
-		if packet.type == PacketType.chat:
+		elif packet.type == PacketType.chat:
 			self.on_chat(packet.sender, ChatPayload.deserialize(packet.payload))
-		if packet.type == PacketType.command:
+		elif packet.type == PacketType.command:
 			self.on_command(packet.sender, CommandPayload.deserialize(packet.payload))
+		elif packet.type == PacketType.custom:
+			self.on_custom(packet.sender, CustomPayload.deserialize(packet.payload))
 
 	def _on_keep_alive(self, sender: str, payload: KeepAlivePayload):
 		if payload.is_ping():
@@ -301,10 +310,20 @@ class ChatBridgeClient(ChatBridgeBase):
 	def on_command(self, sender: str, payload: CommandPayload):
 		pass
 
+	def on_custom(self, sender: str, payload: CustomPayload):
+		pass
+
+	# -------------------------
+	#   Send packet shortcuts
+	# -------------------------
+
 	def _send_keep_alive_ping(self):
 		self.send_to(PacketType.keep_alive, self._keep_alive_target(), KeepAlivePayload.ping())
 
-	def send_chat(self, message: str, author: str = ''):
+	def send_chat(self, target: str, message: str, author: str = ''):
+		self.send_to(PacketType.chat, target, ChatPayload(author=author, message=message))
+
+	def broadcast_chat(self, message: str, author: str = ''):
 		self.send_to_all(PacketType.chat, ChatPayload(author=author, message=message))
 
 	def send_command(self, target: str, command: str, params: Optional[Union[Serializable, dict]] = None):
@@ -313,9 +332,15 @@ class ChatBridgeClient(ChatBridgeBase):
 	def reply_command(self, target: str, asker_payload: 'CommandPayload', result: Union[Serializable, dict]):
 		self.send_to(PacketType.command, target, CommandPayload.answer(asker_payload, result))
 
-	# --------------
-	#   Keep Alive
-	# --------------
+	def send_custom(self, target: str, data: dict):
+		self.send_to(PacketType.chat, target, CustomPayload(data=data))
+
+	def broadcast_custom(self, data: dict):
+		self.send_to_all(PacketType.chat, CustomPayload(data=data))
+
+	# -------------------
+	#   Keep Alive Impl
+	# -------------------
 
 	def _get_keep_alive_thread_name(self):
 		return 'KeepAlive'

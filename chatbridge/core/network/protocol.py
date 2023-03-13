@@ -29,6 +29,7 @@ class PacketType:
 	keep_alive = 'chatbridge.keep_alive'
 	chat = 'chatbridge.chat'
 	command = 'chatbridge.command'
+	custom = 'chatbridge.custom'
 
 
 class ChatBridgePacket(AbstractPacket):
@@ -111,3 +112,7 @@ class CommandPayload(AbstractPayload):
 			params=asker_payload.params,
 			result=result,
 		)
+
+
+class CustomPayload(AbstractPayload):
+	data: dict

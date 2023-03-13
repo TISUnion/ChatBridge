@@ -70,7 +70,7 @@ class CQBot(websocket.WebSocketApp):
 						if len(sender) == 0:
 							sender = data['sender']['nickname']
 						text = html.unescape(data['raw_message'].split(' ', 1)[1])
-						chatClient.send_chat(text, sender)
+						chatClient.broadcast_chat(text, sender)
 
 					if len(args) == 1 and args[0] == '!!online':
 						self.logger.info('!!online command triggered')

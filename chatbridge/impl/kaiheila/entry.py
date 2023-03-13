@@ -117,7 +117,7 @@ class KaiHeiLaBot(Bot):
 			if channel_id == self.config.channel_for_chat:
 				global chatClient
 				if not message.content.startswith(self.config.command_prefix):
-					chatClient.send_chat(message.content, author=author)
+					chatClient.broadcast_chat(message.content, author=author)
 
 	def add_message(self, data, channel_id, t):
 		self.messages.put(MessageData(data=data, channel=channel_id, type=t))
@@ -222,7 +222,7 @@ class KhlChatBridgeClient(ChatBridgeClient):
 					message = '错误代码：{}'.format(result.error_code)
 				khlBot.add_message(message, channel_id, MessageDataType.TEXT)
 		elif payload.command == '!!online':
-			result = OnlineQueryResult.deserialize(payload.result)
+			result: OnlineQueryResult = OnlineQueryResult.deserialize(payload.result)
 			khlBot.add_embed('{} online players'.format(config.server_display_name), '\n'.join(result.data), channel_id)
 
 
