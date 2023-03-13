@@ -116,7 +116,7 @@ class KaiHeiLaBot(Bot):
 			self.logger.info(f"{channel_id}: {author}: {message.content}")
 			if channel_id == self.config.channel_for_chat:
 				global chatClient
-				if not message.content.startswith(self.config.command_prefix):
+				if message.content.startswith('!!qq ') or not message.content.startswith(self.config.command_prefix):
 					chatClient.broadcast_chat(message.content, author=author)
 
 	def add_message(self, data, channel_id, t):
