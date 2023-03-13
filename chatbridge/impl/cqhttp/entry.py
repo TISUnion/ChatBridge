@@ -6,7 +6,7 @@ import websocket
 
 from chatbridge.common.logger import ChatBridgeLogger
 from chatbridge.core.client import ChatBridgeClient
-from chatbridge.core.network.protocol import ChatPayload, CommandPayload
+from chatbridge.core.network.protocol import ChatPayload, CommandPayload, CustomPayload
 from chatbridge.impl import utils
 from chatbridge.impl.cqhttp.config import CqHttpConfig
 from chatbridge.impl.tis.protocol import StatsQueryResult, OnlineQueryResult
@@ -161,6 +161,22 @@ class CqHttpChatBridgeClient(ChatBridgeClient):
 		elif payload.command == '!!online':
 			result = OnlineQueryResult.deserialize(payload.result)
 			cq_bot.send_text('====== 玩家列表 ======\n{}'.format('\n'.join(result.data)))
+
+	def on_custom(self, sender: str, payload: CustomPayload):
+		global cq_bot
+		if cq_bot is None:
+			return
+		try:
+			__example_data = {
+				'cqhttp_client.action': 'send_text',
+				'text': 'the message you want to send'
+			}
+			if payload.data.get('cqhttp_client.action') == 'send_text':
+				text = payload.data.get('text')
+				self.logger.info('Triggered custom text, sending message {} to qq'.format(text))
+				cq_bot.send_text(text)
+		except:
+			self.logger.exception('Error in on_custom()')
 
 
 def main():
