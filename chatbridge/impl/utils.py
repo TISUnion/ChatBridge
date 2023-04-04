@@ -20,7 +20,7 @@ def load_config(config_path: str, config_class: Type[T]) -> T:
 		raise FileNotFoundError(config_path)
 	else:
 		with open(config_path, encoding='utf8') as file:
-			config.update_from(json.load(file))
+			vars(config).update(vars(config_class.deserialize(json.load(file))))
 		with open(config_path, 'w', encoding='utf8') as file:
 			json.dump(config.serialize(), file, ensure_ascii=False, indent=4)
 		return config

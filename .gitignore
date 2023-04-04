@@ -4,11 +4,13 @@
 test.py
 *.log
 *.pyc
-/__pycache__
+__pycache__
 StatsHelper.py
 /stats_helper
 /more_apis
 *.zip
 *.mcdr
 *.pyz
+*.bat
+*.sh
 ChatBridge_*.json
