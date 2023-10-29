@@ -5,7 +5,7 @@ from mcdreforged.api.all import *
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.network.protocol import ChatPayload, CommandPayload
 from chatbridge.impl.mcdr.config import MCDRClientConfig
-from chatbridge.impl.tis.protocol import StatsQueryResult
+from chatbridge.impl.tis.protocol import StatsQueryResult, OnlineQueryResult
 
 
 class ChatBridgeMCDRClient(ChatBridgeClient):
@@ -38,9 +38,10 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 		self.server.say(RText('[{}] {}'.format(sender, payload.formatted_str()), RColor.gray))
 
 	def on_command(self, sender: str, payload: CommandPayload):
+		is_ask = not payload.responded
 		command = payload.command
 		result: Optional[Serializable] = None
-		if command.startswith('!!stats '):
+		if command.startswith('!!stats '):  # !!stats request
 			try:
 				import stats_helper
 			except (ImportError, ModuleNotFoundError):
@@ -69,6 +70,17 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 					result = StatsQueryResult.create(stats_name, lines[1:-1], total)
 				else:
 					result = StatsQueryResult.unknown_stat()
+		elif command == '!!online':  # !!online response
+			player = payload.params.get('player')
+			if player is None:
+				self.logger.warning('No player in params, params {}'.format(payload.params))
+			else:
+				result: OnlineQueryResult = OnlineQueryResult.deserialize(payload.result)
+				for line in result.data:
+					self.server.tell(player, line)
 
-		if result is not None:
+		if is_ask and result is not None:
 			self.reply_command(sender, payload, result)
+
+	def query_online(self, client_to_query_online: str, player: str):
+		self.send_command(client_to_query_online, '!!online', params={'player': player})

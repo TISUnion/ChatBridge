@@ -33,6 +33,17 @@ def display_status(source: CommandSource):
 		source.reply(tr('status.info', client.is_online(), client.get_ping_text()))
 
 
+def query_online(source: CommandSource):
+	if config.client_to_query_online is None:
+		source.reply('client_to_query_online unset')
+		return
+
+	if client is not None:
+		client.query_online(config.client_to_query_online, source.player)
+	else:
+		source.reply(tr('status.not_init'))
+
+
 @new_thread('ChatBridge-restart')
 def restart_client(source: CommandSource):
 	with cb_lock:
@@ -98,6 +109,7 @@ def on_load(server: PluginServerInterface, old_module):
 		then(Literal('status').runs(display_status)).
 		then(Literal('restart').runs(restart_client))
 	)
+	server.register_command(Literal('!!online').runs(query_online))
 
 	@new_thread('ChatBridge-start')
 	def start():
