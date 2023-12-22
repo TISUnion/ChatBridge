@@ -4,6 +4,7 @@ A specific client for responding !!online command for multiple bungeecord instan
 import collections
 import functools
 import re
+import sys
 import traceback
 from concurrent.futures.thread import ThreadPoolExecutor
 from threading import Lock
@@ -135,7 +136,11 @@ def main():
 	config = utils.load_config(ClientConfigFile, OnlineConfig)
 	chatClient = OnlineChatClient.create(config)
 	utils.start_guardian(chatClient)
-	console_input_loop()
+	if sys.stdin.isatty():
+		console_input_loop()
+	else:
+		utils.wait_until_terminate()
+		chatClient.stop()
 
 
 if __name__ == '__main__':

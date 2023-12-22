@@ -13,12 +13,13 @@ def main():
 	stored.client = DiscordChatClient.create(stored.config)
 	stored.bot = bot.create_bot()
 	utils.start_guardian(stored.client)
+	utils.register_exit_on_termination()
 
 	try:
 		stored.bot.start_running()
 	except (KeyboardInterrupt, SystemExit):
 		stored.client.stop()
-	except:
+	except Exception:
 		print(traceback.format_exc())
 
 	print('Bye~')

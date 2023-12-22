@@ -1,0 +1,19 @@
+version: '3'
+services:
+  server:
+    container_name: chatbridge_server
+    restart: unless-stopped
+    image: fallenbreath/chatbridge:latest
+    command: server
+    volumes:
+      - ./ChatBridge_server.json:/app/ChatBridge_server.json
+    ports:
+      - '30001:30001'
+
+  khl_bot:
+    container_name: chatbridge_khl_bot
+    restart: unless-stopped
+    image: fallenbreath/chatbridge:latest
+    command: kaiheila_bot
+    volumes:
+      - ./ChatBridge_kaiheila.json:/app/ChatBridge_kaiheila.json

@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 import traceback
@@ -87,7 +88,12 @@ def main():
 		print('- Client #{}: name = {}, password = {}'.format(i + 1, client_info.name, client_info.password))
 		server.add_client(client_info)
 	server.start()
-	server.console_loop()
+
+	if sys.stdin.isatty():
+		server.console_loop()
+	else:
+		utils.wait_until_terminate()
+		server.stop()
 
 
 if __name__ == '__main__':

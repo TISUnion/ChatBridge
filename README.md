@@ -69,6 +69,23 @@ Enter `python ChatBridge.pyz` in command line to see possible helps
 
 At launch, if the configure file is missing, chatbridge will automatically generate a default one and exit
 
+## Docker Image
+
+[![Docker](https://img.shields.io/docker/v/fallenbreath/chatbridge/latest)](https://hub.docker.com/r/fallenbreath/chatbridge)
+
+Docker Hub image: [`fallenbreath/chatbridge`](https://hub.docker.com/r/fallenbreath/chatbridge)
+
+Image name examples:
+
+- `fallenbreath/chatbridge:latest`
+- `fallenbreath/chatbridge:v2.5.3`
+
+Working directory: `/app`
+
+Example usages: `docker run --rm fallenbreath/chatbridge:latest server`
+
+See the [./docker](docker) directory in the repository for more details and docker compose example
+
 ## Requirement
 
 Python 3.6+ required

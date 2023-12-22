@@ -231,6 +231,7 @@ def main():
 	config = utils.load_config(ConfigFile, KaiHeiLaConfig)
 	chatClient = KhlChatBridgeClient.create(config)
 	utils.start_guardian(chatClient)
+	utils.register_exit_on_termination()
 	print('Starting KHL Bot')
 	khlBot = createKaiHeiLaBot()
 	khlBot.startRunning()

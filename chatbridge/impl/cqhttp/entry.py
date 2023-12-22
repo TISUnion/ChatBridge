@@ -184,6 +184,7 @@ def main():
 	config = utils.load_config(ConfigFile, CqHttpConfig)
 	chatClient = CqHttpChatBridgeClient.create(config)
 	utils.start_guardian(chatClient)
+	utils.register_exit_on_termination()
 	print('Starting CQ Bot')
 	cq_bot = CQBot(config)
 	cq_bot.start()

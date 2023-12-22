@@ -1,5 +1,8 @@
 import json
 import os
+import queue
+import signal
+import sys
 import time
 from threading import Thread
 from typing import Type, TypeVar, Callable
@@ -40,3 +43,20 @@ def start_guardian(client: ChatBridgeClient, wait_time: float = 10, loop_conditi
 	thread = Thread(name='ChatBridge Guardian', target=loop, daemon=True)
 	thread.start()
 	return thread
+
+
+def wait_until_terminate():
+	q = queue.Queue()
+	signal.signal(signal.SIGINT, lambda s, _: q.put(s))
+	signal.signal(signal.SIGTERM, lambda s, _: q.put(s))
+	sig = q.get()
+	print('Interrupted with {} ({})'.format(signal.Signals(sig).name, sig))
+
+
+def register_exit_on_termination():
+	def callback(sig, _):
+		print('Interrupted with {} ({}), exiting'.format(signal.Signals(sig).name, sig))
+		sys.exit(0)
+
+	signal.signal(signal.SIGINT, callback)
+	signal.signal(signal.SIGTERM, callback)
