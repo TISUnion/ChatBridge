@@ -5,6 +5,7 @@ from chatbridge.core.config import ClientConfig
 
 class DiscordConfig(ClientConfig):
 	bot_token: str = "your.bot.token.here"
+	server_info_bot_id: int = 123400000000000000
 	channels_for_command: List[int] = [
 		123400000000000000,
 		123450000000000000

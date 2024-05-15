@@ -3,7 +3,7 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from chatbridge.core.client import ChatBridgeClient
-from chatbridge.core.network.protocol import ChatPayload, CommandPayload, DiscordChatPayload
+from chatbridge.core.network.protocol import ChatPayload, CommandPayload, DiscordChatPayload, CustomPayload
 from chatbridge.impl.mcdr.config import MCDRClientConfig
 from chatbridge.impl.tis.protocol import StatsQueryResult, OnlineQueryResult
 
@@ -87,3 +87,7 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 
 	def query_online(self, client_to_query_online: str, player: str):
 		self.send_command(client_to_query_online, '!!online', params={'player': player})
+
+	def on_custom(self, sender: str, payload: CustomPayload):
+		if payload.data['type'] == 'serverinfo':
+			self.server.say(RText('[{}] {}'.format('Spoon', payload.data['message']), RColor.gray))

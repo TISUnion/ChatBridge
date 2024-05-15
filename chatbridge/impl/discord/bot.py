@@ -9,7 +9,7 @@ from discord.ext import commands
 from discord.ext.commands import Context
 
 from chatbridge.common import logger
-from chatbridge.core.network.protocol import ChatPayload, PacketType, DiscordChatPayload
+from chatbridge.core.network.protocol import ChatPayload, PacketType, DiscordChatPayload, CustomPayload
 from chatbridge.impl.discord import stored
 from chatbridge.impl.discord.config import DiscordConfig
 from chatbridge.impl.discord.helps import CommandHelpMessageAll, CommandHelpMessage, StatsCommandHelpMessage
@@ -126,13 +126,28 @@ class DiscordBot(commands.Bot):
 				if message.webhook_id == webhook.id:
 					return
 				self.logger.info('Chat: {}'.format(msg_debug))
+				# send direct if the message is player info
+				if message.author.id == self.config.server_info_bot_id:
+					stored.client.send_to_all(type_=PacketType.custom, payload=CustomPayload(
+						data = {
+							'type': 'serverinfo',
+							'message': message.clean_content.removeprefix('**').removesuffix('**')
+						}
+					))
+					return
 				# fetch message info
-				color = '#' + hex(message.author.color.value).removeprefix('0x')
-				# fetch author nickname/name
-				try:
-					author_name = message.author.nick
-				except:
-					author_name = message.author.global_name
+				color = ''
+				author_name = ''
+				if message.author.bot:
+					color = '#ffffff'
+					author_name = message.author.name
+				else:
+					color = '#' + hex(message.author.color.value).removeprefix('0x')
+					# fetch author nickname/name
+					try:
+						author_name = message.author.nick
+					except:
+						author_name = message.author.global_name
 				# fetch reply message info
 				reply_name = ''
 				reply_color = ''
@@ -166,7 +181,7 @@ class DiscordBot(commands.Bot):
 					message.author.top_role.name,
 					color,
 					author_name,
-					message.content,
+					message.clean_content,
 					reply_name,
 					reply_color,
 					reply_mes
