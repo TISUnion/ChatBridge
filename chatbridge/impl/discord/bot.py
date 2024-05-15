@@ -47,14 +47,15 @@ class DiscordBot(commands.Bot):
 
 	@property
 	async def webhook(self) -> Webhook:
+		channel_chat = self.get_channel(self.config.channel_for_chat)
 		try:
-			wh = await self.get_channel(self.config.channel_for_chat).webhooks()
-			for webhook in wh:
-				if webhook.user == self.user:
-					wh = webhook
+			webhooks = await channel_chat.webhooks()
+			for _webhook in webhooks:
+				if _webhook.user == self.user:
+					return _webhook
+			raise Exception('no valid webhook')
 		except:
-			wh = await channel_chat.create_webhook(name='Chatbridge webhook')
-		return wh
+			return await channel_chat.create_webhook(name='Chatbridge webhook')
 
 	def start_running(self):
 		self.logger.info('Starting the bot')
