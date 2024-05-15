@@ -3,6 +3,7 @@ from abc import ABC
 from typing import List, Optional, Union
 
 from mcdreforged.utils.serializer import Serializable
+from mcdreforged.minecraft.rtext.text import *
 
 from chatbridge.common.serializer import NoMissingFieldSerializable
 
@@ -28,6 +29,7 @@ class LoginResultPacket(AbstractPacket):
 class PacketType:
 	keep_alive = 'chatbridge.keep_alive'
 	chat = 'chatbridge.chat'
+	discord_chat = 'chatbridge.discord_chat'
 	command = 'chatbridge.command'
 	custom = 'chatbridge.custom'
 
@@ -79,6 +81,31 @@ class ChatPayload(AbstractPayload):
 		else:
 			return self.message
 
+class DiscordChatPayload(AbstractPayload):
+	role: str
+	color: str
+	author: str
+	message: str
+	reply_name: str
+	reply_color: str
+	reply_mes: str
+	
+	@property
+	def rtext_list(self) -> RTextList:
+		return RTextList(
+			RTextList(
+				'    §8┌──── §f<',
+				RText(self.reply_name, color=RColorRGB.from_code(self.reply_color)),
+				f'§f> §8{self.reply_mes}\n',
+			) if self.reply_name else '',
+			RText(f'[Discord] ', color=RColor.blue, styles=RStyle.bold),
+			'< ',
+			RText(self.role, color=RColorRGB.from_code(self.color)),
+			f' | {self.author} > {self.message}'
+		)
+
+	def formatted_str(self) -> str:
+		return self.rtext_list.to_json_str()
 
 class CommandPayload(AbstractPayload):
 	cid: str

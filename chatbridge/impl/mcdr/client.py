@@ -3,7 +3,7 @@ from typing import Optional
 from mcdreforged.api.all import *
 
 from chatbridge.core.client import ChatBridgeClient
-from chatbridge.core.network.protocol import ChatPayload, CommandPayload
+from chatbridge.core.network.protocol import ChatPayload, CommandPayload, DiscordChatPayload
 from chatbridge.impl.mcdr.config import MCDRClientConfig
 from chatbridge.impl.tis.protocol import StatsQueryResult, OnlineQueryResult
 
@@ -36,6 +36,9 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 
 	def on_chat(self, sender: str, payload: ChatPayload):
 		self.server.say(RText('[{}] {}'.format(sender, payload.formatted_str()), RColor.gray))
+
+	def on_discord_chat(self, sender: str, payload: DiscordChatPayload):
+		self.server.say(payload.rtext_list)
 
 	def on_command(self, sender: str, payload: CommandPayload):
 		is_ask = not payload.responded

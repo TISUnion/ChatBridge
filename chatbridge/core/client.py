@@ -15,7 +15,7 @@ from chatbridge.core.config import ClientInfo, ClientConfig
 from chatbridge.core.network import net_util
 from chatbridge.core.network.basic import ChatBridgeBase, Address
 from chatbridge.core.network.protocol import ChatBridgePacket, PacketType, AbstractPacket, ChatPayload, \
-	KeepAlivePayload, AbstractPayload, CommandPayload, CustomPayload
+	KeepAlivePayload, AbstractPayload, CommandPayload, CustomPayload, DiscordChatPayload
 from chatbridge.core.network.protocol import LoginPacket, LoginResultPacket
 
 
@@ -291,6 +291,8 @@ class ChatBridgeClient(ChatBridgeBase):
 			self._on_keep_alive(packet.sender, KeepAlivePayload.deserialize(packet.payload))
 		elif packet.type == PacketType.chat:
 			self.on_chat(packet.sender, ChatPayload.deserialize(packet.payload))
+		elif packet.type == PacketType.discord_chat:
+			self.on_discord_chat(packet.sender, DiscordChatPayload.deserialize(packet.payload))
 		elif packet.type == PacketType.command:
 			self.on_command(packet.sender, CommandPayload.deserialize(packet.payload))
 		elif packet.type == PacketType.custom:
@@ -305,6 +307,9 @@ class ChatBridgeClient(ChatBridgeBase):
 			self.logger.warning('Unknown keep alive type: {}'.format(payload.ping_type))
 
 	def on_chat(self, sender: str, payload: ChatPayload):
+		pass
+
+	def on_discord_chat(self, sender: str, payload: DiscordChatPayload):
 		pass
 
 	def on_command(self, sender: str, payload: CommandPayload):
@@ -325,6 +330,12 @@ class ChatBridgeClient(ChatBridgeBase):
 
 	def broadcast_chat(self, message: str, author: str = ''):
 		self.send_to_all(PacketType.chat, ChatPayload(author=author, message=message))
+
+	def braodcast_discord_chat(self, role: str, color: str, author: str, message: str, 
+					reply_name: str, reply_color: str, reply_mes: str):
+		self.send_to_all(PacketType.discord_chat, DiscordChatPayload(
+			role=role, color=color, author=author, message=message,
+			reply_name=reply_name, reply_color=reply_color, reply_mes=reply_mes))
 
 	def send_command(self, target: str, command: str, params: Optional[Union[Serializable, dict]] = None):
 		self.send_to(PacketType.command, target, CommandPayload.ask(command, params))
