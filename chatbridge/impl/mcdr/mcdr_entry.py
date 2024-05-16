@@ -148,11 +148,13 @@ def on_load(server: PluginServerInterface, old_module):
 
 
 def on_user_info(server: PluginServerInterface, info: Info):
+	if not config.send_to_chat_bridge.chat: return
 	if info.is_from_server:
 		send_chat(info.content, author=info.player)
 
 
 def on_player_joined(server: PluginServerInterface, player_name: str, info: Info):
+	if not config.send_to_chat_bridge.player_joined: return
 	send_player_join_leave({
 		'type': 'player-join-leave',
 		'player': player_name,
@@ -161,6 +163,7 @@ def on_player_joined(server: PluginServerInterface, player_name: str, info: Info
 
 
 def on_player_left(server: PluginServerInterface, player_name: str):
+	if not config.send_to_chat_bridge.player_left: return
 	send_player_join_leave({
 		'type': 'player-join-leave',
 		'player': player_name,
@@ -169,6 +172,7 @@ def on_player_left(server: PluginServerInterface, player_name: str):
 
 
 def on_server_startup(server: PluginServerInterface):
+	if not config.send_to_chat_bridge.server_start: return
 	broadcast_custom_payload({
 		'type': 'server-start-stop',
 		'start': True
@@ -176,6 +180,7 @@ def on_server_startup(server: PluginServerInterface):
 
 
 def on_server_stop(server: PluginServerInterface, return_code: int):
+	if not config.send_to_chat_bridge.server_stop: return
 	broadcast_custom_payload({
 		'type': 'server-start-stop',
 		'start': False
