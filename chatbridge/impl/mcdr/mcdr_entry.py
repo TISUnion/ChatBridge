@@ -5,6 +5,8 @@ from typing import Optional
 
 from mcdreforged.api.all import *
 
+from chatbridge.common import constants
+from chatbridge.core.network.protocol import CustomPayload, PacketType
 from chatbridge.impl import utils
 from chatbridge.impl.mcdr.client import ChatBridgeMCDRClient
 from chatbridge.impl.mcdr.config import MCDRClientConfig
@@ -72,6 +74,16 @@ def send_chat(message: str, *, author: str = ''):
 				client.broadcast_chat(message, author)
 
 
+@new_thread('ChatBridge-messenger-custom')
+def send_player_join_leave(data: dict):
+	with cb_lock:
+		if client is not None:
+			if not client.is_running():
+				client.start()
+			if client.is_online():
+				client.send_to(PacketType.custom, constants.SERVER_NAME, CustomPayload(data=data))
+
+
 def on_load(server: PluginServerInterface, old_module):
 	cb1_config_path = os.path.join('config', 'ChatBridge_client.json')
 	config_path = os.path.join(server.get_data_folder(), 'config.json')
@@ -131,11 +143,19 @@ def on_user_info(server: PluginServerInterface, info: Info):
 
 
 def on_player_joined(server: PluginServerInterface, player_name: str, info: Info):
-	send_chat('{} joined {}'.format(player_name, config.name))
+	send_player_join_leave({
+		'type': 'player-join-leave',
+		'player': player_name,
+		'join': True
+	})
 
 
 def on_player_left(server: PluginServerInterface, player_name: str):
-	send_chat('{} left {}'.format(player_name, config.name))
+	send_player_join_leave({
+		'type': 'player-join-leave',
+		'player': player_name,
+		'join': False
+	})
 
 
 def on_server_startup(server: PluginServerInterface):

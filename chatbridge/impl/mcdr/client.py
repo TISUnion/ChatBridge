@@ -91,3 +91,16 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 	def on_custom(self, sender: str, payload: CustomPayload):
 		if payload.data['type'] == 'serverinfo':
 			self.server.say(RText('[{}] {}'.format('Spoon', payload.data['message']), RColor.gray))
+		elif payload.data['type'] == 'player-join-leave':
+			server = payload.data['server']
+			if server == self.get_name(): return
+			is_join = payload.data['join']
+			player = payload.data['player']
+			msg = '加入了遊戲' if is_join else '離開了遊戲'
+			self.server.say(RText(f'[{server}] {player} {msg}', RColor.gray))
+		elif payload.data['type'] == 'player-swap-server':
+			_from = payload.data['from']
+			_to = payload.data['to']
+			player = payload.data['player']
+			self.server.say(RText(f'[{_from}] {player} 移動到 {_to}', RColor.gray))
+

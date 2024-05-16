@@ -4,7 +4,7 @@ from queue import Queue, Empty
 from typing import NamedTuple, Any, List
 
 import discord
-from discord import Message, Webhook
+from discord import Message, Webhook, SyncWebhook
 from discord.ext import commands
 from discord.ext.commands import Context
 
@@ -29,6 +29,8 @@ class MessageData(NamedTuple):
 
 
 class DiscordBot(commands.Bot):
+	sync_webhook: SyncWebhook
+
 	def __init__(self, command_prefix, **options):
 		options['help_command'] = None
 		super().__init__(command_prefix, **options)
@@ -56,6 +58,9 @@ class DiscordBot(commands.Bot):
 			raise Exception('no valid webhook')
 		except:
 			return await channel_chat.create_webhook(name='Chatbridge webhook')
+
+	# @property
+	# async def 
 
 	def start_running(self):
 		self.logger.info('Starting the bot')
@@ -105,6 +110,8 @@ class DiscordBot(commands.Bot):
 
 	async def on_ready(self):
 		self.logger.info(f'Logged in as {self.user}')
+		webhook = await self.webhook
+		self.sync_webhook = SyncWebhook.from_url(webhook.url)
 		await self.listeningMessage()
 
 	async def on_message(self, message: Message):
@@ -144,10 +151,8 @@ class DiscordBot(commands.Bot):
 				else:
 					color = '#' + hex(message.author.color.value).removeprefix('0x')
 					# fetch author nickname/name
-					try:
-						author_name = message.author.nick
-					except:
-						author_name = message.author.global_name
+					author_name = message.author.nick if message.author.nick else message.author.global_name
+
 				# fetch reply message info
 				reply_name = ''
 				reply_color = ''
@@ -159,8 +164,14 @@ class DiscordBot(commands.Bot):
 						# author is a webhook
 						author = reference.author
 						reply_name = author.display_name
-						reply_name = reply_name.split('] ', 1)[1]
+						try:
+							reply_name = reply_name.split('] ', 1)[1]
+						except:
+							reply_name
 						reply_color = '#ffffff'
+						if reference.embeds:
+							embed = reference.embeds[0]
+							reply_mes = embed.description
 					elif reference.author.bot:
 						author = reference.author
 						reply_name = author.name
@@ -169,13 +180,11 @@ class DiscordBot(commands.Bot):
 						# author is a member
 						channel_chat = self.get_channel(self.config.channel_for_chat)
 						author = await channel_chat.guild.fetch_member(reference.author.id)
-						try:
-							reply_name = author.nick
-						except:
-							reply_name = author.global_name
+						reply_name = author.nick if author.nick else author.global_name
 						reply_color = '#' + hex(author.color.value).removeprefix('0x')
 
-					reply_mes = reference.content
+					if not reply_mes:
+						reply_mes = reference.content
 
 				stored.client.braodcast_discord_chat(
 					message.author.top_role.name,
