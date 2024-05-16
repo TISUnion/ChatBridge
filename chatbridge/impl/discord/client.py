@@ -80,3 +80,9 @@ class DiscordChatClient(ChatBridgeClient):
 			embed = Embed(description=f'**{emoji} {server} 伺服器{msg}**', color=color)
 
 			stored.bot.sync_webhook.send(embed=embed, username=stored.bot.user.name, avatar_url=stored.bot.user.avatar.url)
+		elif payload.data['type'] == 'player-first-join':
+			player = payload.data['player']
+
+			embed = Embed(description=f'**有一隻新湯匙🥄 {player} 掉在新手村**', color=Color.gold())
+
+			stored.bot.sync_webhook.send(embed=embed, username=stored.bot.user.name, avatar_url=stored.bot.user.avatar.url)

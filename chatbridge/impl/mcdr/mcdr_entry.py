@@ -1,7 +1,9 @@
 import os
+import re
 import shutil
 from threading import Event, Lock
 from typing import Optional
+from time import sleep
 
 from mcdreforged.api.all import *
 
@@ -18,6 +20,7 @@ config: Optional[MCDRClientConfig] = None
 plugin_unload_flag = False
 cb_stop_done = Event()
 cb_lock = Lock()
+mc_rcon: RconConnection
 
 
 def tr(key: str, *args, **kwargs) -> RTextBase:
@@ -133,6 +136,8 @@ def on_load(server: PluginServerInterface, old_module):
 	)
 	server.register_command(Literal('!!online').runs(query_online))
 
+	init_rcon(server)
+
 	@new_thread('ChatBridge-start')
 	def start():
 		with cb_lock:
@@ -153,8 +158,26 @@ def on_user_info(server: PluginServerInterface, info: Info):
 		send_chat(info.content, author=info.player)
 
 
+@new_thread
+def broadcast_first_join(server: PluginServerInterface, player_name: str):
+	server.say(RText(f'有一隻新湯匙🥄 {player_name} 掉在新手村', RColor.gold))
+	broadcast_custom_payload({
+		'type': 'player-first-join',
+		'player': player_name
+	})
+
+
 def on_player_joined(server: PluginServerInterface, player_name: str, info: Info):
 	if not config.send_to_chat_bridge.player_joined: return
+	if config.send_to_chat_bridge.player_first_join:
+		global mc_rcon
+		ret = mc_rcon.send_command(f'tag {player_name} list')
+		server.logger.info(ret)
+		if not re.search(f'{player_name} has \d+ tags:.+joined', ret):
+			mc_rcon.send_command(f'tag {player_name} add joined')
+			broadcast_first_join(server, player_name)
+
+
 	send_player_join_leave({
 		'type': 'player-join-leave',
 		'player': player_name,
@@ -171,7 +194,18 @@ def on_player_left(server: PluginServerInterface, player_name: str):
 	})
 
 
+@new_thread
+def init_rcon(server: PluginServerInterface):
+	if not config.send_to_chat_bridge.player_first_join: return
+	global mc_rcon
+	mc_rcon = RconConnection(config.mc_rcon.host, config.mc_rcon.port, config.mc_rcon.password)
+	while not mc_rcon.connect():
+		sleep(0.1)
+	server.logger.info('Rcon connected')
+
+
 def on_server_startup(server: PluginServerInterface):
+	init_rcon(server)
 	if not config.send_to_chat_bridge.server_start: return
 	broadcast_custom_payload({
 		'type': 'server-start-stop',

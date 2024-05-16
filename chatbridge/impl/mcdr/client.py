@@ -90,7 +90,9 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 	def query_online(self, client_to_query_online: str, player: str):
 		self.send_command(client_to_query_online, '!!online', params={'player': player})
 
+	@new_thread
 	def on_custom(self, sender: str, payload: CustomPayload):
+		self.server.logger.info(payload)
 		conf = self.config.send_to_minecraft
 		if payload.data['type'] == 'serverinfo':
 			if not conf.server_info: return
@@ -114,4 +116,9 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 			server = sender
 			msg = '已啟動' if payload.data['start'] else '已關閉'
 			self.server.say(RText(f'[{server}] 伺服器{msg}', RColor.gray))
+		elif payload.data['type'] == 'player-first-join':
+			self.server.logger.info('fsas')
+			if not conf.player_first_join: return
+			player = payload.data['player']
+			self.server.say(RText(f'有一隻新湯匙🥄 {player} 掉在新手村', RColor.gold))
 
