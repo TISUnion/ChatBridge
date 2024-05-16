@@ -84,6 +84,16 @@ def send_player_join_leave(data: dict):
 				client.send_to(PacketType.custom, constants.SERVER_NAME, CustomPayload(data=data))
 
 
+@new_thread('ChatBridge-broadcast-custom')
+def broadcast_custom_payload(data: dict):
+	with cb_lock:
+		if client is not None:
+			if not client.is_running():
+				client.start()
+			if client.is_online():
+				client.send_to_all(PacketType.custom, CustomPayload(data=data))
+
+
 def on_load(server: PluginServerInterface, old_module):
 	cb1_config_path = os.path.join('config', 'ChatBridge_client.json')
 	config_path = os.path.join(server.get_data_folder(), 'config.json')
@@ -159,11 +169,17 @@ def on_player_left(server: PluginServerInterface, player_name: str):
 
 
 def on_server_startup(server: PluginServerInterface):
-	send_chat('Server has started up')
+	broadcast_custom_payload({
+		'type': 'server-start-stop',
+		'start': True
+	})
 
 
 def on_server_stop(server: PluginServerInterface, return_code: int):
-	send_chat('Server stopped')
+	broadcast_custom_payload({
+		'type': 'server-start-stop',
+		'start': False
+	})
 
 
 @event_listener('more_apis.death_message')

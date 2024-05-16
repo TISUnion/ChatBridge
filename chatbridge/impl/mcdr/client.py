@@ -103,4 +103,8 @@ class ChatBridgeMCDRClient(ChatBridgeClient):
 			_to = payload.data['to']
 			player = payload.data['player']
 			self.server.say(RText(f'[{_from}] {player} 移動到 {_to}', RColor.gray))
+		elif payload.data['type'] == 'server-start-stop':
+			server = sender
+			msg = '已啟動' if payload.data['start'] else '已關閉'
+			self.server.say(RText(f'[{server}] 伺服器{msg}', RColor.gray))
 

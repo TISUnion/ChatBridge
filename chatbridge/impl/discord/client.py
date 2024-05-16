@@ -59,6 +59,24 @@ class DiscordChatClient(ChatBridgeClient):
 			_from = payload.data['from']
 			_to = payload.data['to']
 
-			embed = Embed(description=f'**{_from} ▶ {player} 移動到 {_to}**', color=Color.teal())
+			embed = Embed(description=f'**{_from} ▶ {player} 移動到 {_to}**', color=Color.blue())
+
+			stored.bot.sync_webhook.send(embed=embed, username=stored.bot.user.name, avatar_url=stored.bot.user.avatar.url)
+		elif payload.data['type'] == 'server-start-stop':
+			server = sender
+			color: Color
+			emoji: str
+			msg: str
+
+			if payload.data['start']:
+				color = Color.green()
+				emoji = '🟢'
+				msg = '已啟動'
+			else:
+				color = Color.red()
+				emoji = '🔴'
+				msg = '已關閉'
+
+			embed = Embed(description=f'**{emoji} {server} 伺服器{msg}**', color=color)
 
 			stored.bot.sync_webhook.send(embed=embed, username=stored.bot.user.name, avatar_url=stored.bot.user.avatar.url)
