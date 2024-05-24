@@ -5,7 +5,7 @@ import signal
 import sys
 import time
 from threading import Thread
-from typing import Type, TypeVar, Callable
+from typing import Type, TypeVar, Callable, Optional, Any
 
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.config import BasicConfig
@@ -53,9 +53,11 @@ def wait_until_terminate():
 	print('Interrupted with {} ({})'.format(signal.Signals(sig).name, sig))
 
 
-def register_exit_on_termination():
+def register_exit_on_termination(exit_callback: Optional[Callable[[], Any]] = None):
 	def callback(sig, _):
 		print('Interrupted with {} ({}), exiting'.format(signal.Signals(sig).name, sig))
+		if exit_callback:
+			exit_callback()
 		sys.exit(0)
 
 	signal.signal(signal.SIGINT, callback)

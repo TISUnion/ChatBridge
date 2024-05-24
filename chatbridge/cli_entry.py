@@ -25,6 +25,11 @@ def cqhttp_bot():
 	entry.main()
 
 
+def satori_bot():
+	from chatbridge.impl.satori import entry
+	entry.main()
+
+
 def online_command():
 	from chatbridge.impl.online import entry
 	entry.main()
@@ -49,6 +54,7 @@ def main():
 		print('{} server: Start the ChatBridge server'.format(prefix))
 		print('{} discord_bot: Start a Discord bot as client'.format(prefix))
 		print('{} cqhttp_bot: Start a CQ-Http bot as client'.format(prefix))
+		print('{} satori_bot: Start a Satori bot as client'.format(prefix))
 		print('{} kaiheila_bot: Start a Kaiheila bot as client'.format(prefix))
 		print('{} online_command: Start a OnlineCommand bot as client'.format(prefix))
 
