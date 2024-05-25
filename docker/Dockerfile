@@ -14,9 +14,7 @@ RUN cd /build \
 FROM python:${PYTHON_VERSION}-slim
 
 COPY --from=builder /build/requirements.all.txt /app/
-RUN apt-get update \
-    && pip3 install -r /app/requirements.all.txt  \
-    && pip3 cache purge
+RUN pip3 install -r /app/requirements.all.txt && pip3 cache purge
 
 COPY --from=builder /build/ChatBridge.pyz /app/
 WORKDIR /app
