@@ -15,11 +15,8 @@ FROM python:${PYTHON_VERSION}-slim
 
 COPY --from=builder /build/requirements.all.txt /app/
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc build-essential libffi-dev \
-    && rm -rf /var/lib/apt/lists/* \
     && pip3 install -r /app/requirements.all.txt  \
-    && pip3 cache purge \
-    && apt-get purge -y --auto-remove gcc build-essential libffi-dev
+    && pip3 cache purge
 
 COPY --from=builder /build/ChatBridge.pyz /app/
 WORKDIR /app
