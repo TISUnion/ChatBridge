@@ -29,6 +29,7 @@ ChatBridge is mainly for custom use of TIS server, especially the bot/command co
 - Discord client
 - Kaiheila client
 - Online command client
+- ...
 
 Therefore, for these bot and related clients:
 
@@ -50,6 +51,7 @@ ChatBridge 是一个为 TIS 服务器定制使用的工具，尤其是 bot/指�
 - Discord 客户端
 - Kaiheila 客户端
 - Online 指令客户端
+- ...
 
 因此，对于这些 bot 及相关的客户端：
 
@@ -190,7 +192,6 @@ python ChatBridge.pyz cqhttp_bot
 Extra requirements (also listed in `/chatbridge/impl/cqhttp/requirements.txt`):
 
 ```
-websocket>=0.2.1
 websocket-client>=1.2.1
 ```
 
@@ -217,21 +218,47 @@ Extra configure fields (compared to [CLI client](#cli-client))
     "server_display_name": "TIS"  // The name of the server, used for display in some places
 ```
 
+## Client as a Satori client
+
+```
+python ChatBridge.pyz cqhttp_bot
+```
+
+Extra requirements (also listed in `/chatbridge/impl/satori/requirements.txt`):
+
+```
+satori-python>=0.11
+```
+
+Just like the CoolqHttp client, but it uses satori protocol
+
+Extra configure fields (compared to [CLI client](#cli-client))
+
+```json5
+    "ws_address": "127.0.0.1",  // satori server address
+    "ws_port": 5500,            // satori server port
+    "ws_path": "",              // satori server optional path prefix
+    "satori_token": "xxxxx",    // satori access token
+    "react_channel_id": 12345,  // the target channel id (for QQ, it's the group id)
+    "chatbridge_message_prefix": "!!qq",
+    "client_to_query_stats": "MyClient1",  // it should be a client as an MCDR plugin, with stats_helper plugin installed in the MCDR
+    "client_to_query_online": "MyClient2",  // a client described in the following section "Client to respond online command"
+    "server_display_name": "TIS"  // The name of the server, used for display in some places
+```
+
 ## Kaiheila bot client
 
-`python ChatBridge.pyz kaiheila_bot`
+`python ChatBridge.pyz satori_bot`
 
 Extra requirements (also listed in `/chatbridge/impl/kaiheila/requirements.txt`):
 
 ```
-khl.py==0.0.10
+khl.py~=0.3.17
 ```
 
 Extra configure fields (compared to [CLI client](#cli-client))
 
 ```json5
-    "client_id": "",  // kaiheila client id
-    "client_secret": "",  // kaiheila client secret
     "token": "",  // kaiheila token
     "channels_for_command": [  // a list of channels, public commands can be used here. use string
         "123400000000000000",
