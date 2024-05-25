@@ -138,9 +138,8 @@ class SatoriClient:
 
 	async def main(self):
 		self.__loop = asyncio.get_event_loop()
-		t = asyncio.create_task(self.__messanger_loop())
-		await self.app.run_async()
-		await t
+		_ = asyncio.create_task(self.__messanger_loop())
+		await self.app.run_async(stop_signal=[])
 
 	def submit_text(self, s: str):
 		self.__message_queue.put(s)
