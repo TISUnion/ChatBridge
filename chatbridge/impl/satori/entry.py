@@ -9,7 +9,7 @@ from chatbridge.common.logger import ChatBridgeLogger
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.network.protocol import ChatPayload, CommandPayload, CustomPayload
 from chatbridge.impl import utils
-from chatbridge.impl.cqhttp.entry import CQHelpMessage, StatsHelpMessage
+from chatbridge.impl.cqhttp.copywritings import CQHelpMessage, StatsHelpMessage
 from chatbridge.impl.satori.config import SatoriConfig
 from chatbridge.impl.tis.protocol import StatsQueryResult, OnlineQueryResult
 
