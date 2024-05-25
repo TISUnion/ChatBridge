@@ -1,12 +1,12 @@
 import asyncio
 import collections
-import json
 import logging
 import queue
 from typing import Optional, List
 
-from khl import Bot, Cert, Msg
+from khl import Bot, Message, MessageTypes, PublicMessage
 
+from chatbridge.common.logger import ChatBridgeLogger
 from chatbridge.core.client import ChatBridgeClient
 from chatbridge.core.config import ClientConfig
 from chatbridge.core.network.protocol import ChatPayload, CommandPayload
@@ -22,8 +22,6 @@ EmbedIcon = 'https://cdn.discordapp.com/emojis/566212479487836160.png'
 
 
 class KaiHeiLaConfig(ClientConfig):
-	client_id: str = ''
-	client_secret: str = ''
 	token: str = ''
 	channels_for_command: List[str] = [
 		'123321',
@@ -50,24 +48,62 @@ khlBot: Optional['KaiHeiLaBot'] = None
 chatClient: Optional['KhlChatBridgeClient'] = None
 
 
-class KaiHeiLaBot(Bot):
+class KaiHeiLaBot:
 	def __init__(self, config: KaiHeiLaConfig):
 		self.config = config
-		cert = Cert(
-			client_id=self.config.client_id,
-			client_secret=self.config.client_secret,
-			token=self.config.token
-		)
-		super().__init__(cert=cert, cmd_prefix=[self.config.command_prefix])
+		self.loop = asyncio.get_event_loop()
+		self.bot = Bot(token=self.config.token)
+		self.__register_bot_callbacks()
+		self.logger = ChatBridgeLogger('khl', file_handler=chatClient.logger.file_handler)
 		self.messages = queue.Queue()
-		self.event_loop = asyncio.get_event_loop()
-		self._setup_event_loop(self.event_loop)
 
 	def startRunning(self):
 		self.logger.info('Starting the bot')
-		self.on_text_msg(self.on_message)
-		asyncio.ensure_future(self.on_ready(), loop=self.event_loop)
-		self.run()
+		self.bot.run()
+
+	def __register_bot_callbacks(self):
+		self.bot.on_message()(self.__on_message)
+		self.bot.on_startup(self.__on_ready)
+
+		def bot_command():
+			return self.bot.command(prefixes=[self.config.command_prefix])
+
+		@bot_command()
+		async def help(msg: Message):
+			if msg.ctx.channel.id in self.config.channels_for_command:
+				if msg.ctx.channel.id == self.config.channel_for_chat:
+					text = CommandHelpMessageAll
+				else:
+					text = CommandHelpMessage
+				await msg.reply(text)
+
+		@bot_command()
+		async def ping(msg: Message):
+			if msg.ctx.channel.id in self.config.channels_for_command:
+				await self.bot.client.send(msg.ctx.channel, 'pong!!')
+
+		async def send_chatbridge_command(target_client: str, command: str, msg: Message):
+			if chatClient.is_online():
+				self.logger.info('Sending command "{}" to client {}'.format(command, target_client))
+				chatClient.send_command(target_client, command, params={'from_channel': msg.ctx.channel.id})
+			else:
+				await msg.reply('ChatBridge client is offline')
+
+		@bot_command()
+		async def online(msg: Message):
+			if msg.ctx.channel.id == config.channel_for_chat:  # chat channel only
+				await send_chatbridge_command(config.client_to_query_online, '!!online', msg)
+
+		@bot_command()
+		async def stats(msg: Message, *args):
+			args = list(args)
+			if len(args) >= 1 and args[0] == 'rank':
+				args.pop(0)
+			command = '!!stats rank ' + ' '.join(args)
+			if len(args) == 0 or len(args) - int(command.find('-bot') != -1) - int(command.find('-all') != -1) != 2:
+				await msg.reply(StatsCommandHelpMessage)
+			else:
+				await send_chatbridge_command(config.client_to_query_stats, command, msg)
 
 	async def listeningMessage(self):
 		self.logger.info('Message listening looping...')
@@ -83,34 +119,38 @@ class KaiHeiLaBot(Bot):
 					assert isinstance(data, tuple)
 					sender: str = data[0]
 					payload: ChatPayload = data[1]
-					await self.send(self.config.channel_for_chat, self.formatMessageToKaiHeiLa('[{}] {}'.format(sender, payload.formatted_str())))
+					ch = await self.bot.client.fetch_public_channel(self.config.channel_for_chat)
+					await self.bot.client.send(ch, self.formatMessageToKaiHeiLa('[{}] {}'.format(sender, payload.formatted_str())))
 				elif message_data.type == MessageDataType.CARD:  # embed
 					assert isinstance(data, list)
-					await self.send(message_data.channel, json.dumps([
+					ch = await self.bot.client.fetch_public_channel(message_data.channel)
+					await self.bot.client.send(ch, [
 						{
 							"type": "card",
 							"theme": "secondary",
 							"size": "lg",
 							"modules": data
 						}
-					]), type=Msg.Types.CARD)
+					], type=MessageTypes.CARD)
 				elif message_data.type == MessageDataType.TEXT:
-					await self.send(message_data.channel, self.formatMessageToKaiHeiLa(str(data)))
+					await self.bot.client.send(message_data.channel, self.formatMessageToKaiHeiLa(str(data)))
 				else:
 					self.logger.debug('Unknown messageData type {}'.format(message_data.data))
-		except:
+		except Exception:
 			self.logger.exception('Error looping khl bot')
 
-	async def on_ready(self):
-		id_ = await self.id()
-		self.logger.info(f'Logged in with id {id_}')
-		await self.listeningMessage()
+	async def __on_ready(self, b: Bot):
+		me = await b.client.fetch_me()
+		self.logger.info(f'Logged in as {me.username} with id {me.id}')
+		_ = asyncio.create_task(self.listeningMessage())
 
-	async def on_message(self, message: Msg):
-		if message.author_id == await self.id():
+	async def __on_message(self, message: Message):
+		if message.author_id == (await self.bot.client.fetch_me()).id:
 			return
-		channel_id = message.ctx.channel.id
-		author = message.ctx.author.username
+		if not isinstance(message, PublicMessage):
+			return
+		channel_id = message.channel.id
+		author = message.author.username
 		self.logger.debug('channel id = {}'.format(channel_id))
 		if channel_id in self.config.channels_for_command or channel_id == self.config.channel_for_chat:
 			self.logger.info(f"{channel_id}: {author}: {message.content}")
@@ -156,49 +196,6 @@ class KaiHeiLaBot(Bot):
 		return message
 
 
-def createKaiHeiLaBot() -> KaiHeiLaBot:
-	bot = KaiHeiLaBot(config)
-
-	@bot.command()
-	async def help(msg: Msg):
-		if msg.ctx.channel.id in bot.config.channels_for_command:
-			if msg.ctx.channel.id == bot.config.channel_for_chat:
-				text = CommandHelpMessageAll
-			else:
-				text = CommandHelpMessage
-			await msg.reply(text)
-
-	@bot.command()
-	async def ping(msg: Msg):
-		if msg.ctx.channel.id in bot.config.channels_for_command:
-			await bot.send(msg.ctx.channel.id, 'pong!!')
-
-	async def send_chatbridge_command(target_client: str, command: str, msg: Msg):
-		if chatClient.is_online():
-			bot.logger.info('Sending command "{}" to client {}'.format(command, target_client))
-			chatClient.send_command(target_client, command, params={'from_channel': msg.ctx.channel.id})
-		else:
-			await msg.reply('ChatBridge client is offline')
-
-	@bot.command()
-	async def online(msg: Msg):
-		if msg.ctx.channel.id == config.channel_for_chat:  # chat channel only
-			await send_chatbridge_command(config.client_to_query_online, '!!online', msg)
-
-	@bot.command()
-	async def stats(msg: Msg, *args):
-		args = list(args)
-		if len(args) >= 1 and args[0] == 'rank':
-			args.pop(0)
-		command = '!!stats rank ' + ' '.join(args)
-		if len(args) == 0 or len(args) - int(command.find('-bot') != -1) - int(command.find('-all') != -1) != 2:
-			await msg.reply(StatsCommandHelpMessage)
-		else:
-			await send_chatbridge_command(config.client_to_query_stats, command, msg)
-
-	return bot
-
-
 class KhlChatBridgeClient(ChatBridgeClient):
 	def on_chat(self, sender: str, payload: ChatPayload):
 		khlBot.add_message((sender, payload), None, MessageDataType.CHAT)
@@ -233,7 +230,7 @@ def main():
 	utils.start_guardian(chatClient)
 	utils.register_exit_on_termination()
 	print('Starting KHL Bot')
-	khlBot = createKaiHeiLaBot()
+	khlBot = KaiHeiLaBot(config)
 	khlBot.startRunning()
 	print('Bye~')
 
