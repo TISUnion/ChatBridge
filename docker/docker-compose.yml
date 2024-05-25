@@ -17,3 +17,11 @@ services:
     command: kaiheila_bot
     volumes:
       - ./ChatBridge_kaiheila.json:/app/ChatBridge_kaiheila.json
+
+  satori_bot:
+    container_name: chatbridge_satori_bot
+    restart: unless-stopped
+    image: fallenbreath/chatbridge:latest
+    command: satori_bot
+    volumes:
+      - ./ChatBridge_satori.json:/app/ChatBridge_satori.json

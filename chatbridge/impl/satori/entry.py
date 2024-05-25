@@ -1,5 +1,6 @@
 import asyncio
-from typing import Optional
+import queue
+from typing import Optional, List
 
 from satori import WebsocketsInfo, Event, EventType
 from satori.client import App, Account, ApiInfo
@@ -30,7 +31,7 @@ class SatoriClient:
 		self.logger = ChatBridgeLogger('Satori', file_handler=cb_client.logger.file_handler)
 		self.register_satori_hooks()
 
-		self.__message_queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
+		self.__message_queue: queue.Queue[Optional[str]] = queue.Queue()
 		self.__loop: Optional[asyncio.AbstractEventLoop] = None
 
 	def register_satori_hooks(self):
@@ -39,14 +40,15 @@ class SatoriClient:
 		@self.app.register_on(EventType.MESSAGE_CREATED)
 		async def listen(account: Account, event: Event):
 			self.logger.debug('Satori MESSAGE_CREATED account={} event={}'.format(account, event))
-			if event.channel is None or event.message is None or event.user is None:
+			if event.channel is None or event.message is None or event.user is None or event.message is None:
 				return
 			if event.channel.id != str(config.react_channel_id):
 				return
 			self.logger.info('Satori chat message event: {}'.format(event))
 
-			msg = event.message.content
-			args = msg.split(' ')
+			msg_str = event.message.content
+			msg_comp = event.message.message
+			args = msg_str.split(' ')
 
 			async def send_text(s: str):
 				await account.send_message(event.channel.id, s)
@@ -61,8 +63,20 @@ class SatoriClient:
 
 			if len(args) >= 2 and args[0] == '!!mc':
 				self.logger.info('!!mc command triggered')
-				sender = event.user.nick or event.user.name
-				cb_client.broadcast_chat(msg.split(' ', 1)[-1], sender)
+				sender = event.user.nick or event.user.name or event.member.nick or event.member.name
+				assert sender is not None
+
+				from satori import Text
+				new_elements: List[str] = []
+				for el in msg_comp:
+					if isinstance(el, Text):
+						new_elements.append(el.text)
+					else:
+						new_elements.append(f'<{el.tag}>')
+				processed_msg = ''.join(new_elements)
+				if processed_msg.startswith('!!mc '):
+					processed_msg = processed_msg.split(' ', 1)[-1]
+				cb_client.broadcast_chat(processed_msg, sender)
 
 			if len(args) == 1 and args[0] == '!!online':
 				self.logger.info('!!online command triggered')
@@ -110,7 +124,11 @@ class SatoriClient:
 
 	async def __messanger_loop(self):
 		while True:
-			msg = await self.__message_queue.get()
+			try:
+				msg = self.__message_queue.get(block=False)
+			except queue.Empty:
+				await asyncio.sleep(0.05)
+				continue
 			if msg is None:
 				break
 			try:
@@ -125,15 +143,10 @@ class SatoriClient:
 		await t
 
 	def submit_text(self, s: str):
-		if self.__loop is None:
-			self.logger.warning('submit_message is called when event loop does not exists yet')
-			return
-
-		asyncio.run_coroutine_threadsafe(self.__message_queue.put(s), self.__loop)
+		self.__message_queue.put(s)
 
 	def shutdown(self):
-		if self.__loop is not None:
-			asyncio.run_coroutine_threadsafe(self.__message_queue.put(None), self.__loop)
+		self.__message_queue.put(None)
 
 
 class SatoriChatBridgeClient(ChatBridgeClient):
@@ -176,9 +189,6 @@ class SatoriChatBridgeClient(ChatBridgeClient):
 			text = payload.data.get('text')
 			self.logger.info('Triggered custom text, sending message {} to satori'.format(text))
 			satori_client.submit_text(text)
-
-
-queue = asyncio.Queue()
 
 
 def main():
