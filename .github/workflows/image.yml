@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/image.yml"
+      - "docker/Dockerfile"
       - "chatbridge/**"
       - "lang/**"
       - "__main__.py"
