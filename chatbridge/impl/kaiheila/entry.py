@@ -80,7 +80,8 @@ class KaiHeiLaBot:
 		@bot_command()
 		async def ping(msg: Message):
 			if msg.ctx.channel.id in self.config.channels_for_command:
-				await self.bot.client.send(msg.ctx.channel, 'pong!!')
+				self.logger.info('!!ping command triggered')
+				await msg.reply('pong!!')
 
 		async def send_chatbridge_command(target_client: str, command: str, msg: Message):
 			if chatClient.is_online():
@@ -92,10 +93,12 @@ class KaiHeiLaBot:
 		@bot_command()
 		async def online(msg: Message):
 			if msg.ctx.channel.id == config.channel_for_chat:  # chat channel only
+				self.logger.info('!!online command triggered')
 				await send_chatbridge_command(config.client_to_query_online, '!!online', msg)
 
 		@bot_command()
 		async def stats(msg: Message, *args):
+			self.logger.info('!!stats command triggered, args: {}'.format(args))
 			args = list(args)
 			if len(args) >= 1 and args[0] == 'rank':
 				args.pop(0)

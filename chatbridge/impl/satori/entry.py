@@ -108,6 +108,11 @@ class SatoriClient:
 			path=config.ws_path,
 			token=config.satori_token,
 		))
+		# https://satori.js.org/zh-CN/protocol/message.html
+		text = text.replace('&', '&amp;')
+		text = text.replace('"', '&quot;')
+		text = text.replace('<', '&lt;')
+		text = text.replace('>', '&gt;')
 		await account.send_message(str(config.react_channel_id), text)
 
 	async def __send_text_long(self, text: str):
@@ -158,8 +163,9 @@ class SatoriChatBridgeClient(ChatBridgeClient):
 			return
 
 		payload.message = parts[1]
-		self.logger.info('Triggered command, sending message {} to satori'.format(payload.formatted_str()))
-		satori_client.submit_text('[{}] {}'.format(sender, payload.formatted_str()))
+		msg_to_send = '[{}] {}'.format(sender, payload.formatted_str())
+		self.logger.info('Triggered command, sending message {!r} to satori'.format(msg_to_send))
+		satori_client.submit_text(msg_to_send)
 
 	def on_command(self, sender: str, payload: CommandPayload):
 		if satori_client is None:
