@@ -1,2 +1,1 @@
-websocket>=0.2.1
 websocket-client>=1.2.1
