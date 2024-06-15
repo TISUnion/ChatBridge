@@ -116,6 +116,9 @@ def console_input_loop():
 	while True:
 		try:
 			text = input()
+			if len(text) == 0:
+				continue
+
 			if text in ['!!online', 'online']:
 				print('\n'.join(chatClient.query()))
 			elif text == 'stop':

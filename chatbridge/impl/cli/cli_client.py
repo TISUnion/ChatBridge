@@ -17,6 +17,9 @@ class CLIClient(ChatBridgeClient):
 	def console_loop(self):
 		while True:
 			text = input()
+			if len(text) == 0:
+				continue
+
 			self.logger.info('Processing user input "{}"'.format(text))
 			if text == 'start':
 				self.start()

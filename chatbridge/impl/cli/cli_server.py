@@ -47,6 +47,9 @@ class CLIServer(ChatBridgeServer):
 	def console_loop(self):
 		while self.is_running():
 			text = input()
+			if len(text) == 0:
+				continue
+
 			self.logger.info('Processing user input "{}"'.format(text))
 			if text == 'stop':
 				self.stop()
