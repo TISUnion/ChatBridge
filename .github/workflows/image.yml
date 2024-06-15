@@ -42,7 +42,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64' || 'linux/amd64' }}
+          platforms: 'linux/amd64'
           file: ./docker/Dockerfile
           context: .
           push: ${{ github.event_name != 'pull_request' }}
