@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     image: fallenbreath/chatbridge:latest
     command: server
+    stdin_open: true
+    tty: true
     volumes:
       - ./ChatBridge_server.json:/app/ChatBridge_server.json
     ports:
