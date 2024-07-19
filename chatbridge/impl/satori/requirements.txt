@@ -1,1 +1,1 @@
-satori-python>=0.11
+satori-python==0.11.5
