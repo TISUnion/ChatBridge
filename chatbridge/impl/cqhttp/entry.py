@@ -60,6 +60,11 @@ class CQBot(websocket.WebSocketApp):
 
 					if len(args) == 1 and args[0] == '!!online':
 						self.logger.info('!!online command triggered')
+						if not self.config.client_to_query_online:
+							self.logger.info('!!online command is not enabled')
+							self.send_text('!!online 指令未启用')
+							return
+
 						if chatClient.is_online():
 							command = args[0]
 							client = self.config.client_to_query_online
@@ -70,6 +75,11 @@ class CQBot(websocket.WebSocketApp):
 
 					if len(args) >= 1 and args[0] == '!!stats':
 						self.logger.info('!!stats command triggered')
+						if not self.config.client_to_query_stats:
+							self.logger.info('!!stats command is not enabled')
+							self.send_text('!!stats 指令未启用')
+							return
+
 						command = '!!stats rank ' + ' '.join(args[1:])
 						if len(args) == 0 or len(args) - int(command.find('-bot') != -1) != 3:
 							self.send_text(StatsHelpMessage)

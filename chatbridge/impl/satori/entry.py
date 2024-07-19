@@ -80,6 +80,11 @@ class SatoriClient:
 
 			if len(args) == 1 and args[0] == '!!online':
 				self.logger.info('!!online command triggered')
+				if not config.client_to_query_online:
+					self.logger.info('!!online command is not enabled')
+					await send_text('!!online 指令未启用')
+					return
+
 				if cb_client.is_online():
 					command = args[0]
 					client = config.client_to_query_online
@@ -90,6 +95,11 @@ class SatoriClient:
 
 			if len(args) >= 1 and args[0] == '!!stats':
 				self.logger.info('!!stats command triggered')
+				if not config.client_to_query_stats:
+					self.logger.info('!!stats command is not enabled')
+					await send_text('!!stats 指令未启用')
+					return
+
 				command = '!!stats rank ' + ' '.join(args[1:])
 				if len(args) == 0 or len(args) - int(command.find('-bot') != -1) != 3:
 					await send_text(StatsHelpMessage)
